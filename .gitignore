@@ -1,0 +1,14 @@
+# Python virtual environment
+.venv
+# Python cache
+__pycache__/
+# IDE / Editor
+.vscode/
+# Uploaded documents (CVs, Job Descriptions)
+data/uploads/
+# Vector database persistence
+data/chroma_db/
+# Test artifacts
+pytest_cache/
+# FastAPI
+*.sqlite3
