@@ -4,7 +4,9 @@ from unstructured.partition.docx import partition_docx
 
 class DocumentReader:
     def readPDF(self, file_path: str) -> str:
-        elements = partition_pdf(file_path)
+        elements = partition_pdf(
+            filename=file_path, strategy="hi_res", infer_table_structure=True
+        )
         return self._extractText(elements)
 
     def readDocx(self, file_path: str) -> str:
