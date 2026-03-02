@@ -1,36 +1,66 @@
 from fastapi import APIRouter, File, UploadFile
 import os
 from app.services.document_reader import DocumentReader
+from app.services.llm_service import LLMService
+from app.services.index_manager import IndexManager
+from app.storage.vector_store import VectorStore
+from app.config import UPLOAD_DIR, CHROMA_DIR
 
 router = APIRouter()
 reader = DocumentReader()
-
-UPLOAD_DIR = "data/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+vector_store = VectorStore(CHROMA_DIR)
+index_manager = IndexManager()
+llm_service = LLMService()
 
 
 @router.post("/upload/cv")
 async def uploadCV(file: UploadFile = File(...)):
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    file_path = UPLOAD_DIR / file.filename
 
-    # Save file
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
     # Extract text
-    text = reader.readPDF(file_path)
+    if file.filename.endswith(".pdf"):
+        text = reader.readPDF(file_path)
+    else:
+        text = reader.readDocx(file_path)
 
-    # DEBUG print
-    print("Extracted text:", text[:500])
+    # Add to vector index
+    index_manager.createEmbeddings(text)
+    index_manager.buildIndex()
 
-    return {"filename": file.filename, "text_preview": text[:500]}
+    return {
+        "filename": file.filename,
+        "message": "CV uploaded and indexed successfully",
+    }
 
 
 @router.post("/upload/job-description")
-def uploadJobDescription(file: UploadFile):
-    pass
+async def uploadJobDescription(file: UploadFile = File(...)):
+    file_path = UPLOAD_DIR / file.filename
+
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    # Extract text
+    if file.filename.endswith(".pdf"):
+        text = reader.readPDF(file_path)
+    else:
+        text = reader.readDocx(file_path)
+
+    # Add to vector index
+    index_manager.createEmbeddings(text)
+
+    return {"message": "Job description uploaded and indexed"}
 
 
 @router.post("/query")
-def handleQuery(query: str):
-    pass
+async def handleQuery(query: str):
+    # Retrieve context
+    context = index_manager.retrieveContext(query)
+
+    # Send to LLM
+    response = await llm_service.generateResponse(context, query)
+
+    return {"response": response}

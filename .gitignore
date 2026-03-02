@@ -1,3 +1,5 @@
+# API env
+.env
 # Python virtual environment
 .venv
 # Python cache

@@ -1,18 +1,16 @@
 import chromadb
+from llama_index.vector_stores.chroma import ChromaVectorStore
+from llama_index.core import StorageContext
 
 
 class VectorStore:
     def __init__(self, persist_dir: str):
-        self.client = chromadb.Client()
-        self.collection = self.client.get_or_create_collection("documents")
+        self.client = chromadb.PersistentClient(path=persist_dir)
 
-    def storeEmbedding(self, vector, metadata):
-        self.collection.add(
-            embeddings=[vector], metadatas=[metadata], ids=[metadata.get("id")]
+        self.collection = self.client.get_or_create_collection(name="cv_documents")
+
+        self.vector_store = ChromaVectorStore(chroma_collection=self.collection)
+
+        self.storage_context = StorageContext.from_defaults(
+            vector_store=self.vector_store
         )
-
-    def searchSimilar(self, query_vector, k=5):
-        return self.collection.query(query_embeddings=[query_vector], n_results=k)
-
-    def persistIndex(self):
-        self.client.persist()
