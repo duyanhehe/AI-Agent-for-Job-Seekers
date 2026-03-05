@@ -1,14 +1,16 @@
 import os
 import httpx
+import json
+import re
 from dotenv import load_dotenv
 
 load_dotenv()
 
 timeout = httpx.Timeout(
-    timeout=60.0,  # total timeout
-    connect=10.0,  # connection timeout
-    read=60.0,  # read timeout
-    write=10.0,  # write timeout
+    timeout=60.0,
+    connect=10.0,
+    read=60.0,
+    write=10.0,
 )
 
 
@@ -17,24 +19,58 @@ class LLMService:
         self.api_key = os.getenv("API_KEY")
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
 
-    async def generateResponse(self, context: str, query: str) -> str:
+        if not self.api_key:
+            raise ValueError("API_KEY not found in environment variables.")
+
+    async def generateResponse(self, context: str, query: str) -> dict:
+        if not context:
+            return {
+                "suitability_score": 0,
+                "key_skills": [],
+                "missing_skills": [],
+                "summary": "No relevant CV information found.",
+            }
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
 
+        prompt = f"""
+You are a professional AI recruitment assistant.
+
+Using ONLY the provided CV context, evaluate the candidate.
+
+Return STRICTLY valid JSON in this exact format:
+
+{{
+  "suitability_score": number (0-100),
+  "key_skills": [list of relevant skills found in CV],
+  "missing_skills": [list of important skills not found],
+  "summary": "short professional explanation"
+}}
+
+Rules:
+- suitability_score must be an integer.
+- Do NOT include extra text outside JSON.
+- Do NOT use markdown.
+- Only return valid JSON.
+
+CV Context:
+{context}
+
+Job Question:
+{query}
+"""
+
         payload = {
             "model": "openai/gpt-oss-120b:free",
             "messages": [
-                {
-                    "role": "system",
-                    "content": "You are an AI assistant helping with CV and job description matching.",
-                },
-                {
-                    "role": "user",
-                    "content": f"Context:\n{context}\n\nQuestion:\n{query}",
-                },
+                {"role": "system", "content": "You are a recruitment AI."},
+                {"role": "user", "content": prompt},
             ],
+            "temperature": 0.2,
+            "max_tokens": 800,
         }
 
         async with httpx.AsyncClient(timeout=timeout) as client:
@@ -45,4 +81,22 @@ class LLMService:
         if "choices" not in result:
             raise Exception(f"OpenRouter error: {result}")
 
-        return result["choices"][0]["message"]["content"]
+        raw_output = result["choices"][0]["message"]["content"]
+
+        # Extract JSON safely
+        try:
+            json_match = re.search(r"\{.*\}", raw_output, re.DOTALL)
+            if json_match:
+                parsed = json.loads(json_match.group())
+                return parsed
+            else:
+                raise ValueError("No JSON found in model response")
+
+        except Exception:
+            # Fallback if model misbehaves
+            return {
+                "suitability_score": 0,
+                "key_skills": [],
+                "missing_skills": [],
+                "summary": raw_output,
+            }
