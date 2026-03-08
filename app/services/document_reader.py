@@ -1,17 +1,8 @@
-from unstructured.partition.pdf import partition_pdf
-from unstructured.partition.docx import partition_docx
+from llama_index.core import SimpleDirectoryReader
 
 
 class DocumentReader:
-    def readPDF(self, file_path: str) -> str:
-        elements = partition_pdf(
-            filename=file_path, strategy="hi_res", infer_table_structure=True
-        )
-        return self._extractText(elements)
+    def read(self, file_path: str) -> str:
+        documents = SimpleDirectoryReader(input_files=[str(file_path)]).load_data()
 
-    def readDocx(self, file_path: str) -> str:
-        elements = partition_docx(file_path)
-        return self._extractText(elements)
-
-    def _extractText(self, elements) -> str:
-        return "\n".join(el.text for el in elements if el.text)
+        return "\n".join(doc.text for doc in documents if doc.text)

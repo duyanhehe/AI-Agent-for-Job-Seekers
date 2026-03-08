@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+llama-index
+llama-index-vector-stores-chroma
+llama-index-embeddings-huggingface
+sentence-transformers
+chromadb
+httpx
+pypdf

@@ -21,10 +21,7 @@ async def uploadCV(file: UploadFile = File(...)):
         f.write(await file.read())
 
     # Extract text
-    if file.filename.endswith(".pdf"):
-        text = reader.readPDF(file_path)
-    else:
-        text = reader.readDocx(file_path)
+    text = reader.read(file_path)
 
     # Add to vector index
     index_manager.createEmbeddings(text)
@@ -44,10 +41,7 @@ async def uploadJobDescription(file: UploadFile = File(...)):
         f.write(await file.read())
 
     # Extract text
-    if file.filename.endswith(".pdf"):
-        text = reader.readPDF(file_path)
-    else:
-        text = reader.readDocx(file_path)
+    text = reader.read(file_path)
 
     # Add to vector index
     index_manager.createEmbeddings(text)
