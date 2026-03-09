@@ -7,7 +7,7 @@ class VectorStore:
     def __init__(self, persist_dir: str):
         self.client = chromadb.PersistentClient(path=persist_dir)
 
-        self.collection = self.client.get_or_create_collection(name="cv_documents")
+        self.collection = self.client.get_or_create_collection(name="cv_data")
 
         self.vector_store = ChromaVectorStore(chroma_collection=self.collection)
 

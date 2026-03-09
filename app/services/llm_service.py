@@ -2,6 +2,7 @@ import os
 import httpx
 import json
 import re
+import asyncio
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,6 +19,7 @@ class LLMService:
     def __init__(self):
         self.api_key = os.getenv("API_KEY")
         self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+        self.cache = {}
 
         if not self.api_key:
             raise ValueError("API_KEY not found in environment variables.")
@@ -30,6 +32,11 @@ class LLMService:
                 "missing_skills": [],
                 "summary": "No relevant CV information found.",
             }
+
+        # Cache
+        cache_key = context + query
+        if cache_key in self.cache:
+            return self.cache[cache_key]
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -63,40 +70,42 @@ Job Question:
 {query}
 """
 
-        payload = {
-            "model": "openai/gpt-oss-120b:free",
-            "messages": [
-                {"role": "system", "content": "You are a recruitment AI."},
-                {"role": "user", "content": prompt},
-            ],
-            "temperature": 0.2,
-            "max_tokens": 800,
-        }
+        models = [
+            "meta-llama/llama-3.2-3b-instruct:free",
+            "mistralai/mistral-small-3.1-24b-instruct:free",
+            "openai/gpt-oss-120b:free",
+        ]
 
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.post(self.base_url, headers=headers, json=payload)
+            for model in models:
+                for attempt in range(3):  # retry each model 3 times
+                    payload = {
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.2,
+                        "max_tokens": 300,
+                        "response_format": {"type": "json_object"},
+                    }
 
-        result = response.json()
+                    response = await client.post(
+                        self.base_url, headers=headers, json=payload
+                    )
+                    result = response.json()
 
-        if "choices" not in result:
-            raise Exception(f"OpenRouter error: {result}")
+                    if "choices" in result:
+                        raw_output = result["choices"][0]["message"]["content"]
+                        break
 
-        raw_output = result["choices"][0]["message"]["content"]
+                    if "error" in result and result["error"]["code"] == 429:
+                        await asyncio.sleep(2**attempt)  # 1s, 2s, 4s
+                        continue
 
-        # Extract JSON safely
-        try:
-            json_match = re.search(r"\{.*\}", raw_output, re.DOTALL)
-            if json_match:
-                parsed = json.loads(json_match.group())
-                return parsed
+                    raise Exception(f"OpenRouter error: {result}")
+
+                else:
+                    continue
+
+                break
+
             else:
-                raise ValueError("No JSON found in model response")
-
-        except Exception:
-            # Fallback if model misbehaves
-            return {
-                "suitability_score": 0,
-                "key_skills": [],
-                "missing_skills": [],
-                "summary": raw_output,
-            }
+                raise Exception("All models failed due to rate limits.")

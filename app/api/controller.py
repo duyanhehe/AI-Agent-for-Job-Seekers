@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, UploadFile, HTTPException
 import os
 from app.services.document_reader import DocumentReader
 from app.services.llm_service import LLMService
@@ -51,10 +51,11 @@ async def uploadJobDescription(file: UploadFile = File(...)):
 
 @router.post("/query")
 async def handleQuery(query: str):
-    # Retrieve context
-    context = index_manager.retrieveContext(query)
+    try:
+        context = index_manager.retrieveContext(query)
+        response = await llm_service.generateResponse(context, query)
 
-    # Send to LLM
-    response = await llm_service.generateResponse(context, query)
+        return {"context_length": len(context), "response": response}
 
-    return {"response": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

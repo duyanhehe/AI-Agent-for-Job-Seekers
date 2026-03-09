@@ -55,4 +55,4 @@ class IndexManager:
         context = "\n\n".join([node.node.text for node in nodes])
 
         # Limit context size
-        return context[:3000]
+        return context[:1500]
