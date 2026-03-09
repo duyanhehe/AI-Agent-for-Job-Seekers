@@ -70,42 +70,43 @@ Job Question:
 {query}
 """
 
-        models = [
-            "meta-llama/llama-3.2-3b-instruct:free",
-            "mistralai/mistral-small-3.1-24b-instruct:free",
-            "openai/gpt-oss-120b:free",
-        ]
+        payload = {
+            "model": "openrouter/free",
+            "messages": [
+                {"role": "system", "content": "You are a recruitment AI."},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.2,
+            "max_tokens": 400,
+        }
 
         async with httpx.AsyncClient(timeout=timeout) as client:
-            for model in models:
-                for attempt in range(3):  # retry each model 3 times
-                    payload = {
-                        "model": model,
-                        "messages": [{"role": "user", "content": prompt}],
-                        "temperature": 0.2,
-                        "max_tokens": 300,
-                        "response_format": {"type": "json_object"},
-                    }
+            response = await client.post(self.base_url, headers=headers, json=payload)
 
-                    response = await client.post(
-                        self.base_url, headers=headers, json=payload
-                    )
-                    result = response.json()
+        result = response.json()
 
-                    if "choices" in result:
-                        raw_output = result["choices"][0]["message"]["content"]
-                        break
+        if "choices" not in result:
+            raise Exception(f"OpenRouter error: {result}")
 
-                    if "error" in result and result["error"]["code"] == 429:
-                        await asyncio.sleep(2**attempt)  # 1s, 2s, 4s
-                        continue
+        raw_output = result["choices"][0]["message"]["content"]
 
-                    raise Exception(f"OpenRouter error: {result}")
-
-                else:
-                    continue
-
-                break
-
+        # Extract JSON safely
+        try:
+            json_match = re.search(r"\{.*\}", raw_output, re.DOTALL)
+            if json_match:
+                parsed = json.loads(json_match.group())
+                self.cache[cache_key] = parsed
+                return parsed
             else:
-                raise Exception("All models failed due to rate limits.")
+                raise ValueError("No JSON found in model response")
+
+        except Exception:
+            # Fallback if model misbehaves
+            fallback = {
+                "suitability_score": 0,
+                "key_skills": [],
+                "missing_skills": [],
+                "summary": raw_output,
+            }
+            self.cache[cache_key] = fallback
+            return fallback
