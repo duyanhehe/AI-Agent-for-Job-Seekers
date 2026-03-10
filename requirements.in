@@ -9,3 +9,12 @@ sentence-transformers
 chromadb
 httpx
 pypdf
+
+#ML training
+transformers
+datasets
+peft
+accelerate
+bitsandbytes
+trl
+torch
