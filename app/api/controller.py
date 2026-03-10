@@ -53,9 +53,14 @@ async def uploadJobDescription(file: UploadFile = File(...)):
 async def handleQuery(query: str):
     try:
         context = index_manager.retrieveContext(query)
+        query_type = llm_service.detect_query_type(query)
         response = await llm_service.generateResponse(context, query)
 
-        return {"context_length": len(context), "response": response}
+        return {
+            "query_type": query_type,
+            "context_length": len(context),
+            "response": response,
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
