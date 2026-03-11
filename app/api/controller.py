@@ -1,21 +1,51 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException
-import os
+from fastapi import APIRouter, File, UploadFile, Form
+from uuid import uuid4
+
 from app.services.document_reader import DocumentReader
 from app.services.llm_service import LLMService
-from app.services.index_manager import IndexManager
-from app.storage.vector_store import VectorStore
-from app.config import UPLOAD_DIR, CHROMA_DIR
+from app.services.skill_extractor import SkillExtractor
+from app.schemas.job_preference import JobPreference
+from app.config import UPLOAD_DIR
+from app.core.dependencies import index_manager
 
 router = APIRouter()
+
 reader = DocumentReader()
-vector_store = VectorStore(CHROMA_DIR)
-index_manager = IndexManager()
 llm_service = LLMService()
+skill_extractor = SkillExtractor()
+
+
+# --------------------------------------------------
+# Job filters (dropdown values)
+# --------------------------------------------------
+
+
+@router.get("/jobs/filters")
+def get_job_filters():
+    return index_manager.get_filters()
+
+
+# Optional: hierarchical categories
+@router.get("/jobs/categories")
+def get_job_categories():
+    return index_manager.get_job_categories()
+
+
+# --------------------------------------------------
+# Upload CV + get job matches
+# --------------------------------------------------
 
 
 @router.post("/upload/cv")
-async def uploadCV(file: UploadFile = File(...)):
-    file_path = UPLOAD_DIR / file.filename
+async def upload_cv(
+    job_function: str = Form(None),
+    job_role: str = Form(None),
+    job_type: str = Form(None),
+    location: str = Form(None),
+    file: UploadFile = File(...),
+):
+
+    file_path = UPLOAD_DIR / f"{uuid4()}_{file.filename}"
 
     with open(file_path, "wb") as f:
         f.write(await file.read())
@@ -23,44 +53,33 @@ async def uploadCV(file: UploadFile = File(...)):
     # Extract text
     text = reader.read(file_path)
 
-    # Add to vector index
-    index_manager.createEmbeddings(text)
-    index_manager.buildIndex()
+    # Extract skills
+    skills = await skill_extractor.extract_skills(text)
 
-    return {
-        "filename": file.filename,
-        "message": "CV uploaded and indexed successfully",
-    }
+    # Fast job retrieval (NO LLM)
+    jobs = index_manager.matchJobs(
+        text=text,
+        skills=skills,
+        job_function=job_function,
+        job_role=job_role,
+        job_type=job_type,
+        location=location,
+    )
 
-
-@router.post("/upload/job-description")
-async def uploadJobDescription(file: UploadFile = File(...)):
-    file_path = UPLOAD_DIR / file.filename
-
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
-
-    # Extract text
-    text = reader.read(file_path)
-
-    # Add to vector index
-    index_manager.createEmbeddings(text)
-
-    return {"message": "Job description uploaded and indexed"}
+    return {"cv_text": text, "skills": skills, "jobs": jobs[:10]}
 
 
-@router.post("/query")
-async def handleQuery(query: str):
-    try:
-        context = index_manager.retrieveContext(query)
-        query_type = llm_service.detect_query_type(query)
-        response = await llm_service.generateResponse(context, query)
+# --------------------------------------------------
+# Analyze job match
+# --------------------------------------------------
 
-        return {
-            "query_type": query_type,
-            "context_length": len(context),
-            "response": response,
-        }
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@router.post("/job/analyze")
+async def analyze_job(data: dict):
+
+    cv_text = data["cv_text"]
+    job = data["job"]
+
+    analysis = await llm_service.match_cv_to_job(cv_text, job)
+
+    return {"job": job, "analysis": analysis}

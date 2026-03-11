@@ -1,7 +1,24 @@
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from app.api.controller import router
+from app.core.dependencies import index_manager
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    # Startup
+    index_manager.indexJobs()
+    print("Job index initialized")
+
+    yield
+
+    # Shutdown
+    print("Server shutting down")
+
+
+app = FastAPI(lifespan=lifespan)
+
 app.include_router(router)
 
 

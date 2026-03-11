@@ -1,20 +1,18 @@
+# FastAPI and related dependencies
 fastapi
 uvicorn[standard]
 python-multipart
 pydantic
+# HTTP client
+httpx
+# LlamaIndex and related packages
 llama-index
 llama-index-vector-stores-chroma
 llama-index-embeddings-huggingface
+# For document processing
 sentence-transformers
-chromadb
-httpx
 pypdf
-
-#ML training
-transformers
+# Vector store
+chromadb
+# Mock data
 datasets
-peft
-accelerate
-bitsandbytes
-trl
-torch
