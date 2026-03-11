@@ -84,7 +84,11 @@ Skills: {", ".join(all_skills)}
 
         for node in nodes:
             job_id = node.metadata["job_id"]
-            jobs.append(self.jobs_data[job_id])
+
+            job = self.jobs_data[job_id].copy()
+            job["job_id"] = job_id
+
+            jobs.append(job)
 
         return jobs
 
