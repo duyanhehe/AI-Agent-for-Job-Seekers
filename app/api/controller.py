@@ -4,7 +4,7 @@ from uuid import uuid4
 from app.services.document_reader import DocumentReader
 from app.services.llm_service import LLMService
 from app.services.skill_extractor import SkillExtractor
-from app.schemas.job_preference import JobPreference
+from app.services.country_service import get_countries
 from app.config import UPLOAD_DIR
 from app.core.dependencies import index_manager
 
@@ -16,7 +16,7 @@ skill_extractor = SkillExtractor()
 
 
 # --------------------------------------------------
-# Job filters (dropdown values)
+# (dropdown values)
 # --------------------------------------------------
 
 
@@ -29,6 +29,11 @@ def get_job_filters():
 @router.get("/jobs/categories")
 def get_job_categories():
     return index_manager.get_job_categories()
+
+
+@router.get("/countries")
+def countries():
+    return {"countries": get_countries()}
 
 
 # --------------------------------------------------
@@ -57,7 +62,7 @@ async def upload_cv(
     skills = await skill_extractor.extract_skills(text)
 
     # Fast job retrieval (NO LLM)
-    jobs = index_manager.matchJobs(
+    result = index_manager.matchJobs(
         text=text,
         skills=skills,
         job_function=job_function,
@@ -66,7 +71,12 @@ async def upload_cv(
         location=location,
     )
 
-    return {"cv_text": text, "skills": skills, "jobs": jobs[:10]}
+    return {
+        "cv_text": text,
+        "skills": skills,
+        "warning": result["warning"],
+        "jobs": result["jobs"],
+    }
 
 
 # --------------------------------------------------

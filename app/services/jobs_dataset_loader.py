@@ -66,11 +66,12 @@ def load_jobs():
                 "job_role": row.get("job_title", ""),
                 "company": row.get("company_name", ""),
                 "location": row.get("job_location", "Unknown"),
+                "country": row.get("job_country", ""),
                 "job_type": row.get("job_schedule_type", ""),
                 "salary": row.get("salary_year_avg", None),
+                "work_from_home": row.get("job_work_from_home", False),
                 "skills": skills,
                 "type_skills": type_skills,
             }
         )
-
     return jobs

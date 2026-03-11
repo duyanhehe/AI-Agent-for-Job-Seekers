@@ -16,3 +16,5 @@ pypdf
 chromadb
 # Mock data
 datasets
+# Location parsing
+pycountry

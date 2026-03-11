@@ -26,8 +26,6 @@ anyio==4.12.1
     #   openai
     #   starlette
     #   watchfiles
-asttokens==3.0.1
-    # via stack-data
 attrs==25.4.0
     # via
     #   aiohttp
@@ -39,15 +37,8 @@ bcrypt==5.0.0
     # via chromadb
 beautifulsoup4==4.14.3
     # via llama-index-readers-file
-blis==1.3.3
-    # via thinc
 build==1.4.0
     # via chromadb
-catalogue==2.0.10
-    # via
-    #   spacy
-    #   srsly
-    #   thinc
 certifi==2026.2.25
     # via
     #   httpcore
@@ -67,32 +58,17 @@ click==8.3.1
     #   nltk
     #   typer
     #   uvicorn
-cloudpathlib==0.23.0
-    # via weasel
 colorama==0.4.6
     # via
     #   build
     #   click
     #   griffecli
-    #   ipython
     #   tqdm
     #   uvicorn
-    #   wasabi
-confection==0.1.5
-    # via
-    #   thinc
-    #   weasel
-cymem==2.0.13
-    # via
-    #   preshed
-    #   spacy
-    #   thinc
 dataclasses-json==0.6.7
     # via llama-index-core
 datasets==4.7.0
     # via -r requirements.in
-decorator==5.2.1
-    # via ipython
 defusedxml==0.7.1
     # via llama-index-readers-file
 deprecated==1.2.18
@@ -111,8 +87,6 @@ distro==1.9.0
     # via openai
 durationpy==0.10
     # via kubernetes
-executing==2.2.1
-    # via stack-data
 fastapi==0.135.1
     # via -r requirements.in
 filelock==3.25.1
@@ -188,18 +162,9 @@ importlib-metadata==8.7.1
     # via opentelemetry-api
 importlib-resources==6.5.2
     # via chromadb
-ipython==9.10.0
-    # via -r requirements.in
-ipython-pygments-lexers==1.1.1
-    # via ipython
-jedi==0.19.2
-    # via ipython
-jellyfish==1.2.1
-    # via skillner
 jinja2==3.1.6
     # via
     #   banks
-    #   spacy
     #   torch
 jiter==0.13.0
     # via openai
@@ -265,8 +230,6 @@ markupsafe==3.0.3
     # via jinja2
 marshmallow==3.26.2
     # via dataclasses-json
-matplotlib-inline==0.2.1
-    # via ipython
 mdurl==0.1.2
     # via markdown-it-py
 mmh3==5.2.1
@@ -279,11 +242,6 @@ multidict==6.7.1
     #   yarl
 multiprocess==0.70.18
     # via datasets
-murmurhash==1.0.15
-    # via
-    #   preshed
-    #   spacy
-    #   thinc
 mypy-extensions==1.1.0
     # via typing-inspect
 nest-asyncio==1.6.0
@@ -296,10 +254,8 @@ nltk==3.9.3
     # via
     #   llama-index
     #   llama-index-core
-    #   skillner
 numpy==2.4.3
     # via
-    #   blis
     #   chromadb
     #   datasets
     #   llama-index-core
@@ -308,9 +264,6 @@ numpy==2.4.3
     #   scikit-learn
     #   scipy
     #   sentence-transformers
-    #   skillner
-    #   spacy
-    #   thinc
     #   transformers
 oauthlib==3.3.1
     # via requests-oauthlib
@@ -351,17 +304,11 @@ packaging==26.0
     #   huggingface-hub
     #   marshmallow
     #   onnxruntime
-    #   spacy
-    #   thinc
     #   transformers
-    #   weasel
 pandas==2.3.3
     # via
     #   datasets
     #   llama-index-readers-file
-    #   skillner
-parso==0.8.6
-    # via jedi
 pillow==12.1.1
     # via llama-index-core
 platformdirs==4.9.4
@@ -369,12 +316,6 @@ platformdirs==4.9.4
     #   banks
     #   llama-cloud-services
     #   llama-index-core
-preshed==3.0.12
-    # via
-    #   spacy
-    #   thinc
-prompt-toolkit==3.0.52
-    # via ipython
 propcache==0.4.1
     # via
     #   aiohttp
@@ -384,18 +325,17 @@ protobuf==6.33.5
     #   googleapis-common-protos
     #   onnxruntime
     #   opentelemetry-proto
-pure-eval==0.2.3
-    # via stack-data
 pyarrow==23.0.1
     # via datasets
 pybase64==1.4.3
     # via chromadb
+pycountry==26.2.16
+    # via -r requirements.in
 pydantic==2.12.5
     # via
     #   -r requirements.in
     #   banks
     #   chromadb
-    #   confection
     #   fastapi
     #   llama-cloud
     #   llama-cloud-services
@@ -404,18 +344,12 @@ pydantic==2.12.5
     #   llama-index-workflows
     #   openai
     #   pydantic-settings
-    #   spacy
-    #   thinc
-    #   weasel
 pydantic-core==2.41.5
     # via pydantic
 pydantic-settings==2.13.1
     # via chromadb
 pygments==2.19.2
-    # via
-    #   ipython
-    #   ipython-pygments-lexers
-    #   rich
+    # via rich
 pypdf==6.8.0
     # via
     #   -r requirements.in
@@ -461,9 +395,7 @@ requests==2.32.5
     #   kubernetes
     #   llama-index-core
     #   requests-oauthlib
-    #   spacy
     #   tiktoken
-    #   weasel
 requests-oauthlib==2.0.0
     # via kubernetes
 rich==14.3.3
@@ -492,32 +424,12 @@ six==1.17.0
     # via
     #   kubernetes
     #   python-dateutil
-skillner==1.0.3
-    # via -r requirements.in
-smart-open==7.5.1
-    # via weasel
 sniffio==1.3.1
     # via openai
 soupsieve==2.8.3
     # via beautifulsoup4
-spacy==3.8.11
-    # via
-    #   -r requirements.in
-    #   skillner
-spacy-legacy==3.0.12
-    # via spacy
-spacy-loggers==1.0.5
-    # via spacy
 sqlalchemy[asyncio]==2.0.48
     # via llama-index-core
-srsly==2.5.2
-    # via
-    #   confection
-    #   spacy
-    #   thinc
-    #   weasel
-stack-data==0.6.3
-    # via ipython
 starlette==0.52.1
     # via fastapi
 striprtf==0.0.26
@@ -531,8 +443,6 @@ tenacity==9.1.4
     #   chromadb
     #   llama-cloud-services
     #   llama-index-core
-thinc==8.3.10
-    # via spacy
 threadpoolctl==3.6.0
     # via scikit-learn
 tiktoken==0.12.0
@@ -554,12 +464,7 @@ tqdm==4.67.3
     #   nltk
     #   openai
     #   sentence-transformers
-    #   spacy
     #   transformers
-traitlets==5.14.3
-    # via
-    #   ipython
-    #   matplotlib-inline
 transformers==5.3.0
     # via sentence-transformers
 typer==0.24.1
@@ -567,11 +472,6 @@ typer==0.24.1
     #   chromadb
     #   huggingface-hub
     #   transformers
-    #   typer-slim
-typer-slim==0.24.0
-    # via
-    #   spacy
-    #   weasel
 typing-extensions==4.15.0
     # via
     #   aiosignal
@@ -581,7 +481,6 @@ typing-extensions==4.15.0
     #   fastapi
     #   grpcio
     #   huggingface-hub
-    #   ipython
     #   llama-index-core
     #   llama-index-workflows
     #   openai
@@ -617,17 +516,8 @@ uvicorn[standard]==0.41.0
     # via
     #   -r requirements.in
     #   chromadb
-wasabi==1.1.3
-    # via
-    #   spacy
-    #   thinc
-    #   weasel
 watchfiles==1.1.1
     # via uvicorn
-wcwidth==0.6.0
-    # via prompt-toolkit
-weasel==0.4.3
-    # via spacy
 websocket-client==1.9.0
     # via kubernetes
 websockets==16.0
@@ -636,7 +526,6 @@ wrapt==1.17.3
     # via
     #   deprecated
     #   llama-index-core
-    #   smart-open
 xxhash==3.6.0
     # via datasets
 yarl==1.23.0

@@ -55,7 +55,9 @@ Function: {job["job_function"]}
 Role: {job["job_role"]}
 Company: {job["company"]}
 Location: {job["location"]}
+Country: {job["country"]}
 Type: {job["job_type"]}
+Remote: {job["work_from_home"]}
 Salary: {job["salary"]}
 
 Skills: {", ".join(all_skills)}
@@ -148,16 +150,39 @@ Skills: {", ".join(all_skills)}
         # Semantic retrieval
         # -------------------------
 
+        skills = skills or []
+
         query = text + " Skills: " + ", ".join(skills)
 
         retrieved_jobs = self.retrieve_similar_jobs(query, top_k=100)
 
         print("Retrieved:", len(retrieved_jobs))
 
-        # DEBUG: show first job
         if retrieved_jobs:
             print("Example job:")
             print(retrieved_jobs[0])
+
+        # -------------------------
+        # Country filtering
+        # -------------------------
+
+        country_jobs = []
+
+        for job in retrieved_jobs:
+            job_country = (job.get("country") or "").lower()
+
+            if location and location.lower() == job_country:
+                country_jobs.append(job)
+
+        if country_jobs:
+            jobs_for_ranking = country_jobs
+            country_warning = None
+        else:
+            jobs_for_ranking = retrieved_jobs
+            country_warning = (
+                "There are no jobs listed in the country you selected. "
+                "Here are some jobs from other countries that may match your skills."
+            )
 
         # -------------------------
         # Skill overlap ranking
@@ -167,22 +192,23 @@ Skills: {", ".join(all_skills)}
 
         cv_skills = set(s.lower() for s in skills)
 
-        for job in retrieved_jobs:
+        for job in jobs_for_ranking:
+            # collect job skills
             type_skills = []
 
-            if isinstance(job["type_skills"], dict):
+            if isinstance(job.get("type_skills"), dict):
                 for v in job["type_skills"].values():
                     if isinstance(v, list):
                         type_skills.extend(v)
 
-            skills_list = job["skills"] if isinstance(job["skills"], list) else []
+            skills_list = job.get("skills", [])
 
-            job_skills = set(s.lower() for s in skills_list + type_skills)
+            job_skills = set(s.lower() for s in (skills_list + type_skills))
 
             job_function_val = (job.get("job_function") or "").lower()
             job_role_val = (job.get("job_role") or "").lower()
             job_type_val = (job.get("job_type") or "").lower()
-            job_location_val = (job.get("location") or "").lower()
+            job_country_val = (job.get("country") or "").lower()
 
             # -------------------------
             # scoring
@@ -190,42 +216,39 @@ Skills: {", ".join(all_skills)}
 
             overlap = len(job_skills.intersection(cv_skills))
 
-            function_score = 0
-            if job_function and job_function.lower() in job_function_val:
-                function_score = 1
+            function_score = (
+                1 if job_function and job_function.lower() in job_function_val else 0
+            )
+            role_score = 1 if job_role and job_role.lower() in job_role_val else 0
+            type_score = 1 if job_type and job_type.lower() in job_type_val else 0
 
-            role_score = 0
-            if job_role and job_role.lower() in job_role_val:
-                role_score = 1
+            location_score = (
+                1 if location and location.lower() == job_country_val else 0
+            )
 
-            type_score = 0
-            if job_type and job_type.lower() in job_type_val:
-                type_score = 1
+            remote_score = 1 if job.get("work_from_home") else 0
 
-            location_score = 0
-            if location and location.lower() in job_location_val:
-                location_score = 1
-
-            semantic_score = 1  # vector similarity
+            semantic_score = 1  # retrieved by vector search
 
             final_score = (
                 overlap * 3
                 + function_score * 2
                 + role_score * 2
                 + type_score * 1
-                + location_score * 1
+                + location_score * 2
+                + remote_score * 1
                 + semantic_score
             )
 
-            score_100 = min(100, int((final_score / 37) * 100))
+            score_100 = min(100, int((final_score / 39) * 100))
 
             job_with_score = job.copy()
             job_with_score["score"] = score_100
 
             ranked.append((score_100, job_with_score))
 
-        print("Retrieved:", len(retrieved_jobs))
-        print("Ranked:", len(ranked))
         ranked.sort(key=lambda x: x[0], reverse=True)
 
-        return [j for _, j in ranked[:10]]
+        print("Ranked:", len(ranked))
+
+        return {"warning": country_warning, "jobs": [j for _, j in ranked[:10]]}
