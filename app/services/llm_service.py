@@ -23,6 +23,7 @@ Job:
 
 JSON format:
 {{
+"match_score": number,
 "key_skills": [],
 "missing_skills": [],
 "summary": ""

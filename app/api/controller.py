@@ -1,10 +1,11 @@
-from fastapi import APIRouter, File, UploadFile, Form
+from fastapi import APIRouter, Depends, File, UploadFile, Form
 from uuid import uuid4
 
 from app.services.document_reader import DocumentReader
 from app.services.llm_service import LLMService
 from app.services.skill_extractor import SkillExtractor
 from app.services.country_service import get_countries
+from app.schemas.job_preference import JobPreference
 from app.schemas.job_analysis import JobAnalysisRequest
 from app.schemas.job_question import JobQuestionRequest
 from app.config import UPLOAD_DIR
@@ -18,19 +19,30 @@ skill_extractor = SkillExtractor()
 
 
 # --------------------------------------------------
+# Helpers form parsers
+# --------------------------------------------------
+
+
+def job_preference_form(
+    job_function: str = Form(...),
+    job_type: str = Form(...),
+    location: str = Form(...),
+) -> JobPreference:
+    return JobPreference(
+        job_function=job_function,
+        job_type=job_type,
+        location=location,
+    )
+
+
+# --------------------------------------------------
 # (dropdown values)
 # --------------------------------------------------
 
 
-@router.get("/jobs/filters")
-def get_job_filters():
-    return index_manager.get_filters()
-
-
-# Optional: hierarchical categories
-@router.get("/jobs/categories")
-def get_job_categories():
-    return index_manager.get_job_categories()
+@router.get("/job-functions")
+def get_job_functions():
+    return {"job_functions": index_manager.get_job_functions()}
 
 
 @router.get("/countries")
@@ -45,10 +57,7 @@ def countries():
 
 @router.post("/upload/cv")
 async def upload_cv(
-    job_function: str = Form(None),
-    job_role: str = Form(None),
-    job_type: str = Form(None),
-    location: str = Form(None),
+    job_preference: JobPreference = Depends(job_preference_form),
     file: UploadFile = File(...),
 ):
 
@@ -58,7 +67,10 @@ async def upload_cv(
         f.write(await file.read())
 
     # Extract text
-    text = reader.read(file_path)
+    try:
+        text = reader.read(file_path)
+    except Exception:
+        return {"error": "Failed to parse CV"}
 
     # Extract skills
     skills = await skill_extractor.extract_skills(text)
@@ -67,10 +79,9 @@ async def upload_cv(
     result = index_manager.matchJobs(
         text=text,
         skills=skills,
-        job_function=job_function,
-        job_role=job_role,
-        job_type=job_type,
-        location=location,
+        job_function=job_preference.job_function,
+        job_type=job_preference.job_type,
+        location=job_preference.location,
     )
 
     return {

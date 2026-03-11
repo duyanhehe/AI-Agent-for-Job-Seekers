@@ -14,20 +14,9 @@ AI_AGENT_JOB_APP
 │
 ├── app/ # FastAPI backend
 │
-├── training/ # model training scripts
-│ ├── dataset/
-│ │ └── generate_dataset.py
-│ │
-│ ├── fine_tune.py
-│ ├── prepare_dataset.py
-│ └── quantize_model.py
+├── data/ # ChromaDB + Uploads
 │
-├── models/ # trained models
-│ └── cv_screening_llm
-│
-├── frontend/ # UI
-│
-└── data/
+├── frontend/ # React app
 ```
 
 ---
@@ -42,6 +31,10 @@ source .venv/bin/activate
 
 pip install pip-tools
 pip-sync
+
+cd frontend
+npm install
+npm run dev
 ```
 
 # Run the server and model

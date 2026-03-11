@@ -74,6 +74,19 @@ Skills: {", ".join(all_skills)}
 
     # --------------------------------------------------
 
+    def get_job_functions(self):
+        functions = set()
+
+        for job in self.jobs_data:
+            val = (job.get("job_function") or "").strip()
+
+            if val:
+                functions.add(val)
+
+        return sorted(functions)
+
+    # --------------------------------------------------
+
     def retrieve_similar_jobs(self, query, top_k=100):
 
         retriever = self.index.as_retriever(similarity_top_k=top_k)
@@ -94,60 +107,13 @@ Skills: {", ".join(all_skills)}
 
     # --------------------------------------------------
 
-    def get_filters(self):
-
-        job_functions = set()
-        job_roles = set()
-        job_types = set()
-        locations = set()
-
-        for job in self.jobs_data:
-            if job.get("job_function"):
-                job_functions.add(job["job_function"])
-
-            if job.get("job_role"):
-                job_roles.add(job["job_role"])
-
-            if job.get("job_type"):
-                job_types.add(job["job_type"])
-
-            if job.get("location"):
-                locations.add(job["location"])
-
-        return {
-            "job_functions": sorted(job_functions),
-            "job_roles": sorted(job_roles),
-            "job_types": sorted(job_types),
-            "locations": sorted(locations),
-        }
-
-    # --------------------------------------------------
-
-    def get_job_categories(self):
-
-        categories = {}
-
-        for job in self.jobs_data:
-            category = job["job_function"]
-            role = job["job_role"]
-
-            if category not in categories:
-                categories[category] = set()
-
-            categories[category].add(role)
-
-        return {k: sorted(v) for k, v in categories.items()}
-
-    # --------------------------------------------------
-
     def matchJobs(
         self,
         text,
         skills,
-        job_function=None,
-        job_role=None,
-        job_type=None,
-        location=None,
+        job_function,
+        job_type,
+        location,
     ):
 
         # -------------------------
@@ -210,7 +176,6 @@ Skills: {", ".join(all_skills)}
             job_skills = set(s.lower() for s in (skills_list + type_skills))
 
             job_function_val = (job.get("job_function") or "").lower()
-            job_role_val = (job.get("job_role") or "").lower()
             job_type_val = (job.get("job_type") or "").lower()
             job_country_val = (job.get("country") or "").lower()
 
@@ -223,7 +188,6 @@ Skills: {", ".join(all_skills)}
             function_score = (
                 1 if job_function and job_function.lower() in job_function_val else 0
             )
-            role_score = 1 if job_role and job_role.lower() in job_role_val else 0
             type_score = 1 if job_type and job_type.lower() in job_type_val else 0
 
             location_score = (
@@ -237,19 +201,16 @@ Skills: {", ".join(all_skills)}
             final_score = (
                 overlap * 3
                 + function_score * 2
-                + role_score * 2
                 + type_score * 1
                 + location_score * 2
                 + remote_score * 1
                 + semantic_score
             )
 
-            score_100 = min(100, int((final_score / 39) * 100))
-
             job_with_score = job.copy()
-            job_with_score["score"] = score_100
+            job_with_score["score"] = final_score
 
-            ranked.append((score_100, job_with_score))
+            ranked.append((final_score, job_with_score))
 
         ranked.sort(key=lambda x: x[0], reverse=True)
 
