@@ -1,75 +1,35 @@
-import { useState } from "react";
-import { analyzeJob, askQuestion } from "../services/api";
-
-function JobCard({ job, cvText }) {
-  const [analysis, setAnalysis] = useState(null);
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState(null);
-
-  async function handleAnalyze() {
-    const result = await analyzeJob({
-      cv_text: cvText,
-      job_id: job.job_id,
-    });
-
-    setAnalysis(result.analysis);
-  }
-
-  async function handleAsk() {
-    const result = await askQuestion({
-      cv_text: cvText,
-      job_id: job.job_id,
-      question: question,
-    });
-
-    setAnswer(result.result);
-  }
+function JobCard({ job, onSelect }) {
+  const location = job.location || job.country || "Unknown";
+  const salary = job.salary || "TBA";
 
   return (
-    <div className="border p-4 rounded shadow bg-white">
-      <h3 className="font-bold text-lg">{job.job_role}</h3>
+    <div
+      onClick={onSelect}
+      className="border rounded-lg p-5 bg-white shadow cursor-pointer hover:bg-gray-50"
+    >
+      <h3 className="text-xl font-bold">{job.job_role}</h3>
 
       <p className="text-gray-600">{job.company}</p>
 
-      <p className="text-sm">{job.country}</p>
+      <div className="grid grid-cols-3 mt-3 text-sm">
+        <p>
+          <b>Location:</b> {location}
+        </p>
 
-      <button
-        onClick={handleAnalyze}
-        className="mt-3 bg-blue-500 text-white px-3 py-1 rounded"
-      >
-        Analyze Match
-      </button>
+        <p>
+          <b>Type:</b> {job.job_type}
+        </p>
 
-      {analysis && (
-        <div className="mt-3 text-sm">
-          <p>Match Score: {analysis.match_score}</p>
-
-          <p>Missing Skills:</p>
-          <ul>
-            {analysis.missing_skills.map((s, i) => (
-              <li key={i}>{s}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="mt-4">
-        <input
-          placeholder="Ask about this job..."
-          className="border p-1 w-full"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-        />
-
-        <button
-          onClick={handleAsk}
-          className="mt-2 bg-green-500 text-white px-3 py-1 rounded"
-        >
-          Ask AI
-        </button>
+        <p>
+          <b>Salary:</b> {salary}
+        </p>
       </div>
 
-      {answer && <p className="mt-2 text-sm">{answer.answer}</p>}
+      {job.skills && (
+        <p className="mt-2 text-sm">
+          <b>Skills:</b> {job.skills.join(", ")}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,22 +1,34 @@
 import { useLocation } from "react-router-dom";
 import JobCard from "../components/JobCard";
+import AIAgentPanel from "../components/AIAgentPanel";
+import { useState } from "react";
 
 function JobsMatched() {
   const location = useLocation();
   const data = location.state;
 
+  const [selectedJob, setSelectedJob] = useState(null);
+
   if (!data) return <p>No results</p>;
 
   return (
-    <div className="p-10">
-      <h2 className="text-3xl font-bold mb-6">Jobs Matched</h2>
+    <div className="flex h-screen bg-gray-100 overflow-hidden">
+      {/* LEFT SIDE JOBS */}
+      <div className="w-2/3 p-8 overflow-y-auto">
+        {data.warning && <p className="text-orange-600">{data.warning}</p>}
 
-      {data.warning && <p className="mb-6 text-orange-600">{data.warning}</p>}
-
-      <div className="grid grid-cols-3 gap-6">
-        {data.jobs.map((job, i) => (
-          <JobCard key={i} job={job} cvText={data.cv_text} />
+        {data.jobs.map((job) => (
+          <JobCard
+            key={job.job_id}
+            job={job}
+            onSelect={() => setSelectedJob(job)}
+          />
         ))}
+      </div>
+
+      {/* RIGHT SIDE AI AGENT */}
+      <div className="w-1/3 border-l bg-white h-full">
+        <AIAgentPanel job={selectedJob} cvText={data.cv_text} />
       </div>
     </div>
   );

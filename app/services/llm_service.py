@@ -1,6 +1,25 @@
 import httpx
 import json
 
+SYSTEM_RULES = """
+You are an AI career assistant.
+
+You ONLY help with:
+
+1. Evaluating CV vs job match
+2. Explaining why the candidate fits
+3. Identifying missing skills
+4. Answering questions about the job
+
+You MUST NOT:
+- Give unrelated advice
+- Answer general knowledge
+- Discuss politics or unrelated topics
+- Generate content outside job analysis
+
+Always respond strictly in JSON.
+"""
+
 
 class LLMService:
     def __init__(self):
@@ -9,11 +28,9 @@ class LLMService:
     async def match_cv_to_job(self, cv, job):
 
         prompt = f"""
-You are an AI career advisor.
+{SYSTEM_RULES}
 
 Evaluate how well the candidate matches the job.
-
-Return STRICT JSON.
 
 CV:
 {cv}
@@ -21,7 +38,8 @@ CV:
 Job:
 {job}
 
-JSON format:
+Return JSON:
+
 {{
 "match_score": number,
 "key_skills": [],
@@ -35,12 +53,12 @@ JSON format:
     async def answer_job_question(self, cv, job, question):
 
         prompt = f"""
-You are a career assistant.
+{SYSTEM_RULES}
 
 Candidate CV:
 {cv}
 
-Job Description:
+Job:
 {job}
 
 Question:
