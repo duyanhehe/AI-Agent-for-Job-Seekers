@@ -1,21 +1,62 @@
-from fastapi import APIRouter, Depends, File, UploadFile, Form
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    UploadFile,
+    Form,
+    Response,
+    Request,
+    HTTPException,
+)
+from sqlalchemy.orm import Session
 from uuid import uuid4
 
 from app.services.document_reader import DocumentReader
 from app.services.llm_service import LLMService
 from app.services.skill_extractor import SkillExtractor
 from app.services.country_service import get_countries
+from app.services.auth_service import AuthService
+from app.schemas.auth import SignupRequest, LoginRequest
 from app.schemas.job_preference import JobPreference
 from app.schemas.job_analysis import JobAnalysisRequest
 from app.schemas.job_question import JobQuestionRequest
 from app.config import UPLOAD_DIR
-from app.core.dependencies import index_manager
+from app.core.dependencies import index_manager, get_db
 
 router = APIRouter()
 
 reader = DocumentReader()
 llm_service = LLMService()
 skill_extractor = SkillExtractor()
+auth_service = AuthService()
+
+# --------------------------------------------------
+# Authentication
+# --------------------------------------------------
+
+
+@router.post("/auth/signup")
+def signup(data: SignupRequest, db: Session = Depends(get_db)):
+    user = auth_service.create_user(db, data.email, data.password)
+
+    if not user:
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    return {"message": "User created"}
+
+
+@router.post("/auth/login")
+def login(data: LoginRequest, response: Response, db: Session = Depends(get_db)):
+    user = auth_service.authenticate_user(db, data.email, data.password)
+
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    session_id = auth_service.create_session(user.id)
+
+    response.set_cookie(key="session_id", value=session_id, httponly=True)
+
+    return {"message": "Logged in"}
 
 
 # --------------------------------------------------

@@ -1,12 +1,10 @@
-class User:
-    def __init__(self, user_id: str):
-        self.user_id = user_id
+from sqlalchemy import Column, Integer, String
+from app.core.database import Base
 
-    def uploadDocument(self):
-        pass
 
-    def submitQuery(self):
-        pass
+class User(Base):
+    __tablename__ = "users"
 
-    def viewResponse(self):
-        pass
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, nullable=False, index=True)
+    password_hash = Column(String, nullable=False)

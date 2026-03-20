@@ -2,9 +2,16 @@
 fastapi
 uvicorn[standard]
 python-multipart
-pydantic
+pydantic[email]
 # HTTP client
 httpx
+# ORM + DB
+sqlalchemy
+psycopg2-binary
+# Auth
+passlib[argon2]
+# Redis
+redis
 # LlamaIndex and related packages
 llama-index
 llama-index-vector-stores-chroma
