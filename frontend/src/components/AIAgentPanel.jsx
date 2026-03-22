@@ -82,6 +82,7 @@ ${analysis.summary}`,
     setMessages((prev) => [...prev, aiMessage]);
 
     setLoadingAsk(false);
+    console.log("ANALYZE RESULT:", result);
   }
 
   if (!job) {
