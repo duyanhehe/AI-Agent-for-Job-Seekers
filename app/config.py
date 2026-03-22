@@ -13,6 +13,7 @@ DATA_DIR = BASE_DIR / "data"
 
 # Upload directory
 UPLOAD_DIR = DATA_DIR / "uploads"
+ALLOWED_EXTENSIONS = {".pdf", ".doc", ".docx"}
 
 # Chroma persistence directory
 CHROMA_DIR = DATA_DIR / "chroma_db"

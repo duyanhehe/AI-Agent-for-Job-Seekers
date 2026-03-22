@@ -40,6 +40,7 @@ npm install
 
 ```bash
 ollama serve
+redis-server
 uvicorn app.main:app --reload
 npm run dev
 ```

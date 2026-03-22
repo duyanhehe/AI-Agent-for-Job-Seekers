@@ -5,30 +5,39 @@ from fastapi import (
     UploadFile,
     Form,
     Response,
-    Request,
     HTTPException,
 )
 from sqlalchemy.orm import Session
 from uuid import uuid4
 
-from app.services.document_reader import DocumentReader
-from app.services.llm_service import LLMService
-from app.services.skill_extractor import SkillExtractor
 from app.services.country_service import get_countries
-from app.services.auth_service import AuthService
+from app.services.cache_service import cache_get, cache_set
+
 from app.schemas.auth import SignupRequest, LoginRequest
 from app.schemas.job_preference import JobPreference
 from app.schemas.job_analysis import JobAnalysisRequest
 from app.schemas.job_question import JobQuestionRequest
+
+from app.utils.file_utils import validate_file
+
 from app.config import UPLOAD_DIR
-from app.core.dependencies import index_manager, get_db
+from app.core.dependencies import (
+    index_manager,
+    get_db,
+    auth_service,
+    get_current_user,
+    get_reader,
+    get_llm_service,
+    get_skill_extractor,
+)
+
+from app.models.cv_documents import CVDocuments
+from app.models.job_matched_history import JobMatchedHistory
+from app.models.chat_history import ChatHistory
+
 
 router = APIRouter()
 
-reader = DocumentReader()
-llm_service = LLMService()
-skill_extractor = SkillExtractor()
-auth_service = AuthService()
 
 # --------------------------------------------------
 # Authentication
@@ -100,8 +109,15 @@ def countries():
 async def upload_cv(
     job_preference: JobPreference = Depends(job_preference_form),
     file: UploadFile = File(...),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    reader=Depends(get_reader),
+    skill_extractor=Depends(get_skill_extractor),
 ):
+    # Validate file type
+    validate_file(file)
 
+    # Save file
     file_path = UPLOAD_DIR / f"{uuid4()}_{file.filename}"
 
     with open(file_path, "wb") as f:
@@ -111,12 +127,19 @@ async def upload_cv(
     try:
         text = reader.read(file_path)
     except Exception:
-        return {"error": "Failed to parse CV"}
+        raise HTTPException(status_code=400, detail="Failed to parse CV")
+
+    # Cache check
+    cache_key = f"jobs:{user.id}:{hash(text)}"
+    cached = cache_get(cache_key)
+
+    if cached:
+        return cached
 
     # Extract skills
     skills = await skill_extractor.extract_skills(text)
 
-    # Fast job retrieval (NO LLM)
+    # Match jobs
     result = index_manager.matchJobs(
         text=text,
         skills=skills,
@@ -125,12 +148,36 @@ async def upload_cv(
         location=job_preference.location,
     )
 
-    return {
+    # Save CV
+    cv = CVDocuments(
+        user_id=user.id,
+        file_path=str(file_path),
+        content=text,
+    )
+    db.add(cv)
+    db.commit()
+    db.refresh(cv)
+
+    # Save matched jobs history
+    history = JobMatchedHistory(
+        user_id=user.id,
+        cv_id=cv.id,
+        jobs=result["jobs"],
+    )
+    db.add(history)
+    db.commit()
+
+    response = {
         "cv_text": text,
         "skills": skills,
         "warning": result["warning"],
         "jobs": result["jobs"],
     }
+
+    # Cache result
+    cache_set(cache_key, response)
+
+    return response
 
 
 # --------------------------------------------------
@@ -139,14 +186,14 @@ async def upload_cv(
 
 
 @router.post("/job/analyze")
-async def analyze_job(data: JobAnalysisRequest):
+async def analyze_job(
+    data: JobAnalysisRequest,
+    user=Depends(get_current_user),
+    llm_service=Depends(get_llm_service),
+):
+    job = index_manager.jobs_data[data.job_id]
 
-    cv_text = data.cv_text
-    job_id = data.job_id
-
-    job = index_manager.jobs_data[job_id]
-
-    analysis = await llm_service.match_cv_to_job(cv_text, job)
+    analysis = await llm_service.match_cv_to_job(data.cv_text, job)
 
     return {"job": job, "analysis": analysis}
 
@@ -157,14 +204,25 @@ async def analyze_job(data: JobAnalysisRequest):
 
 
 @router.post("/job/question")
-async def ask_job_question(data: JobQuestionRequest):
+async def ask_job_question(
+    data: JobQuestionRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    llm_service=Depends(get_llm_service),
+):
+    job = index_manager.jobs_data[data.job_id]
 
-    cv_text = data.cv_text
-    job_id = data.job_id
-    question = data.question
+    answer = await llm_service.answer_job_question(data.cv_text, job, data.question)
 
-    job = index_manager.jobs_data[job_id]
+    # Save chat history
+    chat = ChatHistory(
+        user_id=user.id,
+        job_id=data.job_id,
+        question=data.question,
+        answer=str(answer),
+    )
 
-    answer = await llm_service.answer_job_question(cv_text, job, question)
+    db.add(chat)
+    db.commit()
 
-    return {"job": job, "question": question, "result": answer}
+    return {"job": job, "question": data.question, "result": answer}
