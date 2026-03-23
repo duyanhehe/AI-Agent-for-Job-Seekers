@@ -1,16 +1,63 @@
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getDashboard } from "../services/api";
+
 import JobCard from "../components/JobCard";
 import AIAgentPanel from "../components/AIAgentPanel";
 import Layout from "../components/Layout";
-import { useState } from "react";
 
 function JobsMatched() {
   const location = useLocation();
-  const data = location.state;
+  const navigate = useNavigate();
 
+  const [data, setData] = useState(location.state || null);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [chatHistory, setChatHistory] = useState([]);
 
-  if (!data) return <p>No results</p>;
+  // Load from backend if page refreshed
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const dashboard = await getDashboard();
+
+        // Always set chat history
+        setChatHistory(
+          (dashboard.chat_history || []).map((c) => ({
+            job_id: c.job_id,
+            question: c.question,
+            answer: c.answer,
+          })),
+        );
+
+        // Only fallback if no navigation data
+        if (!data) {
+          if (dashboard?.job_history?.length > 0) {
+            const latest = dashboard.job_history[0];
+
+            setData({
+              cv_text: latest.cv_text,
+              jobs: latest.jobs,
+            });
+          } else {
+            navigate("/analyze");
+          }
+        }
+      } catch {
+        navigate("/login");
+      }
+    }
+
+    loadData();
+  }, []);
+
+  // Auto-select first job
+  useEffect(() => {
+    if (data?.jobs?.length > 0 && !selectedJob) {
+      setSelectedJob(data.jobs[0]);
+    }
+  }, [data]);
+
+  if (!data) return <p className="p-6">Loading...</p>;
 
   return (
     <Layout>
@@ -28,9 +75,13 @@ function JobsMatched() {
           ))}
         </div>
 
-        {/* RIGHT SIDE AI AGENT */}
+        {/* RIGHT SIDE AI */}
         <div className="w-1/3 border-l bg-white h-full">
-          <AIAgentPanel job={selectedJob} cvText={data.cv_text} />
+          <AIAgentPanel
+            job={selectedJob}
+            cvText={data.cv_text}
+            chatHistory={chatHistory}
+          />
         </div>
       </div>
     </Layout>

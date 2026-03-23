@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../services/api";
+import { login, getDashboard } from "../services/api";
 import Layout from "../components/Layout";
 import Spinner from "../components/Spinner";
 
@@ -22,10 +22,28 @@ function Login() {
     try {
       const res = await login({ email, password });
 
-      if (res.ok) {
-        navigate("/analyze");
-      } else {
+      if (!res.ok) {
         setError(res.data.detail || "Login failed");
+        setLoading(false);
+        return;
+      }
+
+      // Check if user has job history
+      const dashboard = await getDashboard();
+
+      if (dashboard?.job_history?.length > 0) {
+        const latest = dashboard.job_history[0];
+
+        navigate("/jobs", {
+          state: {
+            cv_text: latest.cv_text || "", // optional
+            skills: [],
+            warning: "",
+            jobs: latest.jobs,
+          },
+        });
+      } else {
+        navigate("/analyze");
       }
     } catch {
       setError("Server error");

@@ -1,14 +1,34 @@
 import { useState, useEffect } from "react";
 import { askQuestion, analyzeJob } from "../services/api";
 
-function AIAgentPanel({ job, cvText }) {
+function AIAgentPanel({ job, cvText, chatHistory = [] }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loadingAsk, setLoadingAsk] = useState(false);
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
 
+  // Load chat history when job changes
   useEffect(() => {
     if (!job) return;
+
+    // Filter chats for this job
+    const jobChats = chatHistory.filter(
+      (c) => String(c.job_id) === String(job.job_id),
+    );
+
+    // Convert DB chats to UI messages
+    const historyMessages = jobChats.flatMap((c) => [
+      {
+        sender: "user",
+        type: "text",
+        text: c.question,
+      },
+      {
+        sender: "ai",
+        type: "text",
+        text: c.answer,
+      },
+    ]);
 
     setMessages([
       {
@@ -24,8 +44,9 @@ function AIAgentPanel({ job, cvText }) {
         sender: "ai",
         type: "analyze_button",
       },
+      ...historyMessages, // Append history
     ]);
-  }, [job]);
+  }, [job, chatHistory]);
 
   async function handleAnalyze() {
     setLoadingAnalyze(true);
@@ -82,7 +103,6 @@ ${analysis.summary}`,
     setMessages((prev) => [...prev, aiMessage]);
 
     setLoadingAsk(false);
-    console.log("ANALYZE RESULT:", result);
   }
 
   if (!job) {
@@ -97,13 +117,11 @@ ${analysis.summary}`,
   return (
     <div className="flex flex-col h-full max-h-screen">
       {/* HEADER */}
-
       <div className="p-4 border-b">
         <h2 className="font-bold text-lg">AI Career Assistant</h2>
       </div>
 
       {/* CHAT AREA */}
-
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, i) => {
           if (msg.type === "analyze_button") {
@@ -154,7 +172,6 @@ ${analysis.summary}`,
       </div>
 
       {/* INPUT AREA */}
-
       <div className="border-t p-3 flex gap-2">
         <input
           value={input}

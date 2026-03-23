@@ -27,6 +27,15 @@ export async function login(data) {
   };
 }
 
+export async function logout() {
+  const res = await fetch(`${API}/auth/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  return res.json();
+}
+
 export async function getJobFunctions() {
   const res = await fetch(`${API}/job-functions`);
   return res.json();
@@ -64,6 +73,14 @@ export async function askQuestion(data) {
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify(data),
+  });
+
+  return res.json();
+}
+
+export async function getDashboard() {
+  const res = await fetch(`${API}/user/dashboard`, {
+    credentials: "include",
   });
 
   return res.json();

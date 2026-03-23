@@ -232,7 +232,7 @@ async def ask_job_question(
         user_id=user.id,
         job_id=data.job_id,
         question=data.question,
-        answer=str(answer),
+        answer=answer.get("answer", ""),
     )
 
     db.add(chat)
@@ -263,8 +263,21 @@ def get_dashboard(
         .all()
     )
 
+    job_history = []
+
+    for h in histories:
+        cv = db.query(CVDocuments).filter(CVDocuments.id == h.cv_id).first()
+
+        job_history.append(
+            {
+                "cv_id": h.cv_id,
+                "cv_text": cv.content if cv else "",
+                "jobs": h.jobs,
+            }
+        )
+
     return {
-        "job_history": [{"cv_id": h.cv_id, "jobs": h.jobs} for h in histories],
+        "job_history": job_history,
         "chat_history": [
             {
                 "job_id": c.job_id,
