@@ -82,6 +82,7 @@ export async function getDashboard() {
   const res = await fetch(`${API}/user/dashboard`, {
     credentials: "include",
   });
+  if (!res.ok) throw new Error("Not authenticated");
 
   return res.json();
 }

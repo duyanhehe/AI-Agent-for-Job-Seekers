@@ -1,8 +1,28 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getDashboard } from "../services/api";
 import Layout from "../components/Layout";
 
 function Home() {
   const navigate = useNavigate();
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasHistory, setHasHistory] = useState(false);
+
+  useEffect(() => {
+    async function checkUser() {
+      try {
+        const dashboard = await getDashboard();
+
+        setIsLoggedIn(true);
+        setHasHistory(dashboard?.job_history?.length > 0);
+      } catch {
+        setIsLoggedIn(false);
+      }
+    }
+
+    checkUser();
+  }, []);
 
   return (
     <Layout>
@@ -18,19 +38,45 @@ function Home() {
 
         {/* BUTTONS */}
         <div className="flex gap-4">
-          <button
-            onClick={() => navigate("/login")}
-            className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg text-lg"
-          >
-            Get Started
-          </button>
+          {!isLoggedIn && (
+            <>
+              <button
+                onClick={() => navigate("/login")}
+                className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg text-lg"
+              >
+                Get Started
+              </button>
 
-          <button
-            onClick={() => navigate("/signup")}
-            className="border border-gray-400 hover:bg-gray-200 px-8 py-4 rounded-lg text-lg"
-          >
-            Sign Up
-          </button>
+              <button
+                onClick={() => navigate("/signup")}
+                className="border border-gray-400 hover:bg-gray-200 px-8 py-4 rounded-lg text-lg"
+              >
+                Sign Up
+              </button>
+            </>
+          )}
+
+          {isLoggedIn && (
+            <>
+              {/* If user already has jobs */}
+              {hasHistory && (
+                <button
+                  onClick={() => navigate("/jobs")}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg text-lg"
+                >
+                  Go to Jobs
+                </button>
+              )}
+
+              {/* Always allow adding new CV */}
+              <button
+                onClick={() => navigate("/analyze")}
+                className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg text-lg"
+              >
+                Add Another CV
+              </button>
+            </>
+          )}
         </div>
       </div>
     </Layout>

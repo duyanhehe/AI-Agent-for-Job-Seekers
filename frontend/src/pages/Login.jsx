@@ -36,7 +36,7 @@ function Login() {
 
         navigate("/jobs", {
           state: {
-            cv_text: latest.cv_text || "", // optional
+            cv_text: latest.cv_text || "",
             skills: [],
             warning: "",
             jobs: latest.jobs,
