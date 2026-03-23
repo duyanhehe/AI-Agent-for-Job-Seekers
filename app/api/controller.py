@@ -2,6 +2,7 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
+    Request,
     UploadFile,
     Form,
     Response,
@@ -66,6 +67,18 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
     response.set_cookie(key="session_id", value=session_id, httponly=True)
 
     return {"message": "Logged in"}
+
+
+@router.post("/auth/logout")
+def logout(request: Request, response: Response):
+    session_id = request.cookies.get("session_id")
+
+    if session_id:
+        auth_service.delete_session(session_id)
+
+    response.delete_cookie("session_id")
+
+    return {"message": "Logged out"}
 
 
 # --------------------------------------------------
@@ -226,3 +239,38 @@ async def ask_job_question(
     db.commit()
 
     return {"job": job, "question": data.question, "result": answer}
+
+
+# --------------------------------------------------
+# Get user history
+# --------------------------------------------------
+@router.get("/user/dashboard")
+def get_dashboard(
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    histories = (
+        db.query(JobMatchedHistory)
+        .filter(JobMatchedHistory.user_id == user.id)
+        .order_by(JobMatchedHistory.id.desc())
+        .all()
+    )
+
+    chats = (
+        db.query(ChatHistory)
+        .filter(ChatHistory.user_id == user.id)
+        .order_by(ChatHistory.id.desc())
+        .all()
+    )
+
+    return {
+        "job_history": [{"cv_id": h.cv_id, "jobs": h.jobs} for h in histories],
+        "chat_history": [
+            {
+                "job_id": c.job_id,
+                "question": c.question,
+                "answer": c.answer,
+            }
+            for c in chats
+        ],
+    }

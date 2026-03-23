@@ -54,3 +54,6 @@ class AuthService:
 
     def get_user_from_session(self, session_id: str):
         return redis_client.get(f"session:{session_id}")
+
+    def delete_session(self, session_id: str):
+        redis_client.delete(f"session:{session_id}")
