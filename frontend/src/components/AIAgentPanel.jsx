@@ -61,8 +61,7 @@ function AIAgentPanel({ job, cvText, chatHistory = [] }) {
     const aiMessage = {
       sender: "ai",
       type: "text",
-      text: `Match Score: ${analysis.match_score}
-
+      text: `
 Key Skills: ${analysis.key_skills?.join(", ")}
 
 Missing Skills: ${analysis.missing_skills?.join(", ")}

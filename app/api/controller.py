@@ -332,13 +332,16 @@ async def ask_job_question(
     job = index_manager.jobs_data[data.job_id]
 
     answer = await llm_service.answer_job_question(data.cv_text, job, data.question)
+    answer_text = ""
+
+    if isinstance(answer, dict):
+        answer_text = answer.get("answer", "")
+    else:
+        answer_text = ""
 
     # Save chat history
     chat = ChatHistory(
-        user_id=user.id,
-        job_id=data.job_id,
-        question=data.question,
-        answer=answer.get("answer", ""),
+        user_id=user.id, job_id=data.job_id, question=data.question, answer=answer_text
     )
 
     db.add(chat)

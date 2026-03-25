@@ -53,6 +53,8 @@ Return JSON:
 
         prompt = f"""
 {SYSTEM_RULES}
+You MUST return valid JSON only.
+DO NOT include any explanation outside JSON.
 
 Candidate CV:
 {cv}
@@ -63,18 +65,17 @@ Job:
 Question:
 {question}
 
-Return JSON:
+Return EXACTLY this format:
 
 {{
-"answer": "",
-"reason": ""
+"answer": "string",
+"reason": "string"
 }}
 """
 
         return await self._call_llm(prompt)
 
     async def _call_llm(self, prompt):
-
         payload = {
             "model": "llama3.2:3b",
             "prompt": prompt,
@@ -86,14 +87,24 @@ Return JSON:
             response = await client.post(self.base_url, json=payload)
 
         result = response.json()
-
         raw_output = result.get("response", "")
 
+        # print("RAW LLM OUTPUT:", raw_output)
+
+        if not raw_output or raw_output.strip() in ["", "null"]:
+            return {"error": "Empty response from LLM", "answer": ""}
+
         try:
-            return json.loads(raw_output)
+            parsed = json.loads(raw_output)
+
+            # handle case where JSON is null
+            if parsed is None:
+                return {"error": "LLM returned null", "answer": ""}
+
+            return parsed
 
         except Exception:
             return {
                 "error": "Failed to parse LLM response",
-                "raw_output": raw_output,
+                "answer": raw_output.strip(),  # fallback
             }
