@@ -2,6 +2,10 @@ function JobCard({ job, onSelect }) {
   const location = job.location || job.country || "Unknown";
   const salary = job.salary || "TBA";
 
+  const formattedDate = job.posted_date
+    ? new Date(job.posted_date).toLocaleDateString()
+    : "Unknown";
+
   return (
     <div
       onClick={onSelect}
@@ -11,7 +15,7 @@ function JobCard({ job, onSelect }) {
 
       <p className="text-gray-600">{job.company}</p>
 
-      <div className="grid grid-cols-3 mt-3 text-sm">
+      <div className="grid grid-cols-4 mt-3 text-sm">
         <p>
           <b>Location:</b> {location}
         </p>
@@ -22,6 +26,10 @@ function JobCard({ job, onSelect }) {
 
         <p>
           <b>Salary:</b> {salary}
+        </p>
+
+        <p>
+          <b>Posted:</b> {formattedDate}
         </p>
       </div>
 

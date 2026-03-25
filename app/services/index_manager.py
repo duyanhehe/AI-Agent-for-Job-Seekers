@@ -6,6 +6,7 @@ from llama_index.core.schema import Document
 
 from app.services.jobs_dataset_loader import load_jobs
 from app.config import CHROMA_DIR
+from app.utils.filter_by_date import filter_by_date
 
 
 class IndexManager:
@@ -114,6 +115,7 @@ Skills: {", ".join(all_skills)}
         job_function,
         job_type,
         location,
+        date_filter=None,
     ):
 
         # -------------------------
@@ -125,12 +127,6 @@ Skills: {", ".join(all_skills)}
         query = text + " Skills: " + ", ".join(skills)
 
         retrieved_jobs = self.retrieve_similar_jobs(query, top_k=100)
-
-        print("Retrieved:", len(retrieved_jobs))
-
-        if retrieved_jobs:
-            print("Example job:")
-            print(retrieved_jobs[0])
 
         # -------------------------
         # Country filtering
@@ -214,6 +210,14 @@ Skills: {", ".join(all_skills)}
 
         ranked.sort(key=lambda x: x[0], reverse=True)
 
-        print("Ranked:", len(ranked))
+        top_jobs = [j for _, j in ranked[:100]]
 
-        return {"warning": country_warning, "jobs": [j for _, j in ranked[:10]]}
+        # filter by date if requested
+        filtered_jobs = filter_by_date(top_jobs, date_filter)
+
+        final_jobs = filtered_jobs if filtered_jobs else top_jobs
+
+        return {
+            "warning": country_warning,
+            "jobs": final_jobs,
+        }

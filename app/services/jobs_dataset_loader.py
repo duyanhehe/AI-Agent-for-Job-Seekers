@@ -72,6 +72,7 @@ def load_jobs():
                 "work_from_home": row.get("job_work_from_home", False),
                 "skills": skills,
                 "type_skills": type_skills,
+                "posted_date": row.get("job_posted_date", None),
             }
         )
     return jobs

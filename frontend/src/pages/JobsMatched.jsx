@@ -24,9 +24,14 @@ function JobsMatched() {
 
   const [jobFunctions, setJobFunctions] = useState([]);
   const [countries, setCountries] = useState([]);
+  const [dateFilter, setDateFilter] = useState("");
 
   const [loadingRecalc, setLoadingRecalc] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const jobsPerPage = 10;
 
   // -------------------------
   // INITIAL LOAD
@@ -66,7 +71,6 @@ function JobsMatched() {
           const matchedCV = dashboard.job_history.find(
             (cv) => cv.cv_text === data.cv_text,
           );
-
           if (matchedCV) setActiveCV(matchedCV);
           return;
         }
@@ -100,7 +104,16 @@ function JobsMatched() {
   }, [data]);
 
   // -------------------------
-  // CONFIRM RECALCULATE
+  // PAGINATION LOGIC
+  // -------------------------
+  const indexOfLastJob = currentPage * jobsPerPage;
+  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
+
+  const currentJobs = data.jobs.slice(indexOfFirstJob, indexOfLastJob);
+  const totalPages = Math.ceil(data.jobs.length / jobsPerPage);
+
+  // -------------------------
+  // RECALCULATE
   // -------------------------
   async function handleRecalculate() {
     if (!activeCV) return;
@@ -114,6 +127,7 @@ function JobsMatched() {
         job_function: activeCV.job_function,
         job_type: activeCV.job_type,
         location: activeCV.location,
+        date_filter: dateFilter,
       });
 
       setData({
@@ -124,6 +138,7 @@ function JobsMatched() {
 
       setSelectedJob(null);
       setHasChanges(false);
+      setCurrentPage(1); // reset page
     } catch (err) {
       console.error(err);
     }
@@ -151,6 +166,7 @@ function JobsMatched() {
                   });
                   setSelectedJob(null);
                   setHasChanges(false);
+                  setCurrentPage(1); // reset page
                 }}
                 className={`px-4 py-3 rounded border text-sm transition ${
                   activeCV?.cv_id === cv.cv_id
@@ -158,99 +174,120 @@ function JobsMatched() {
                     : "bg-white text-gray-700 hover:bg-gray-100"
                 }`}
               >
-                <div className="flex flex-col items-start">
-                  <span className="font-semibold">CV {index + 1}</span>
-                </div>
+                <span className="font-semibold">CV {index + 1}</span>
               </button>
             ))}
           </div>
 
-          {/* FILTER SECTION */}
+          {/* FILTERS */}
           {activeCV && (
             <>
               <h3 className="font-semibold text-gray-700 mb-3">
                 Adjust Job Preferences
               </h3>
 
-              <div className="flex gap-6 mb-4 items-end flex-wrap">
+              <div className="flex flex-wrap gap-2 mb-6">
                 {/* Job Function */}
-                <div className="flex flex-col text-sm">
-                  <label className="mb-1 text-gray-600 font-medium">
+                <select
+                  value={activeCV.job_function || ""}
+                  onChange={(e) => {
+                    setActiveCV((prev) => ({
+                      ...prev,
+                      job_function: e.target.value,
+                    }));
+                    setHasChanges(true);
+                  }}
+                  className={`px-3 py-2 rounded-full border text-sm bg-white ${
+                    activeCV.job_function
+                      ? "border-green-400 ring-2 ring-green-100"
+                      : "border-gray-300"
+                  }`}
+                >
+                  <option value="" disabled hidden>
                     Job Function
-                  </label>
-                  <select
-                    value={activeCV.job_function || ""}
-                    onChange={(e) => {
-                      setActiveCV((prev) => ({
-                        ...prev,
-                        job_function: e.target.value,
-                      }));
-                      setHasChanges(true);
-                    }}
-                    className="border px-3 py-2 rounded"
-                  >
-                    <option value="">Select function</option>
-                    {jobFunctions.map((f) => (
-                      <option key={f} value={f}>
-                        {f}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  </option>
+                  {jobFunctions.map((f) => (
+                    <option key={f} value={f}>
+                      {f}
+                    </option>
+                  ))}
+                </select>
 
                 {/* Job Type */}
-                <div className="flex flex-col text-sm">
-                  <label className="mb-1 text-gray-600 font-medium">
+                <select
+                  value={activeCV.job_type || ""}
+                  onChange={(e) => {
+                    setActiveCV((prev) => ({
+                      ...prev,
+                      job_type: e.target.value,
+                    }));
+                    setHasChanges(true);
+                  }}
+                  className={`px-3 py-2 rounded-full border text-sm bg-white ${
+                    activeCV.job_type
+                      ? "border-green-400 ring-2 ring-green-100"
+                      : "border-gray-300"
+                  }`}
+                >
+                  <option value="" disabled hidden>
                     Job Type
-                  </label>
-                  <select
-                    value={activeCV.job_type || ""}
-                    onChange={(e) => {
-                      setActiveCV((prev) => ({
-                        ...prev,
-                        job_type: e.target.value,
-                      }));
-                      setHasChanges(true);
-                    }}
-                    className="border px-3 py-2 rounded"
-                  >
-                    <option value="">Select type</option>
-                    <option value="Full-time">Full-time</option>
-                    <option value="Part-time">Part-time</option>
-                    <option value="Internship">Internship</option>
-                  </select>
-                </div>
+                  </option>
+                  <option value="Full-time">Full-time</option>
+                  <option value="Part-time">Part-time</option>
+                  <option value="Internship">Internship</option>
+                </select>
 
                 {/* Location */}
-                <div className="flex flex-col text-sm">
-                  <label className="mb-1 text-gray-600 font-medium">
+                <select
+                  value={activeCV.location || ""}
+                  onChange={(e) => {
+                    setActiveCV((prev) => ({
+                      ...prev,
+                      location: e.target.value,
+                    }));
+                    setHasChanges(true);
+                  }}
+                  className={`px-3 py-2 rounded-full border text-sm bg-white ${
+                    activeCV.location
+                      ? "border-green-400 ring-2 ring-green-100"
+                      : "border-gray-300"
+                  }`}
+                >
+                  <option value="" disabled hidden>
                     Location
-                  </label>
-                  <select
-                    value={activeCV.location || ""}
-                    onChange={(e) => {
-                      setActiveCV((prev) => ({
-                        ...prev,
-                        location: e.target.value,
-                      }));
-                      setHasChanges(true);
-                    }}
-                    className="border px-3 py-2 rounded max-w-[200px]"
-                  >
-                    <option value="">Select location</option>
-                    {countries.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  </option>
+                  {countries.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
 
-                {/* CONFIRM BUTTON */}
+                {/* Date */}
+                <select
+                  value={dateFilter}
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                    setHasChanges(true);
+                  }}
+                  className={`px-3 py-2 rounded-full border text-sm bg-white ${
+                    dateFilter
+                      ? "border-green-400 ring-2 ring-green-100"
+                      : "border-gray-300"
+                  }`}
+                >
+                  <option value="">Date Posted</option>
+                  <option value="24h">Past 24h</option>
+                  <option value="3d">Past 3 days</option>
+                  <option value="week">Past week</option>
+                  <option value="month">Past month</option>
+                  <option value="year">Past year</option>
+                </select>
+
                 <button
                   onClick={handleRecalculate}
                   disabled={!hasChanges || loadingRecalc}
-                  className={`px-4 py-2 rounded text-white ${
+                  className={`px-4 py-2 rounded-full text-white ${
                     !hasChanges
                       ? "bg-gray-400"
                       : "bg-green-500 hover:bg-green-600"
@@ -262,21 +299,68 @@ function JobsMatched() {
             </>
           )}
 
-          {/* SPINNER */}
           {loadingRecalc && <Spinner />}
-
-          {/* WARNING */}
           {data.warning && <p className="text-orange-600">{data.warning}</p>}
 
           {/* JOB LIST */}
           {!loadingRecalc &&
-            data.jobs.map((job) => (
+            currentJobs.map((job) => (
               <JobCard
                 key={job.job_id}
                 job={job}
                 onSelect={() => setSelectedJob(job)}
               />
             ))}
+
+          {/* PAGINATION */}
+          {!loadingRecalc && totalPages > 1 && (
+            <div className="flex flex-col items-center mt-6 gap-3">
+              <p className="text-sm text-gray-500">
+                Showing {indexOfFirstJob + 1}–
+                {Math.min(indexOfLastJob, data.jobs.length)} of{" "}
+                {data.jobs.length} jobs
+              </p>
+
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 border rounded bg-white disabled:opacity-50"
+                >
+                  Prev
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .slice(
+                    Math.max(currentPage - 2, 0),
+                    Math.min(currentPage + 2, totalPages),
+                  )
+                  .map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 rounded border ${
+                        currentPage === page
+                          ? "bg-green-500 text-white"
+                          : "bg-white"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                <button
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(p + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 border rounded bg-white disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT */}

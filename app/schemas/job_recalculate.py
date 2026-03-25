@@ -7,3 +7,4 @@ class JobRecalculateRequest(BaseModel):
     job_function: str | None = None
     job_type: str | None = None
     location: str | None = None
+    date_filter: str | None = None
