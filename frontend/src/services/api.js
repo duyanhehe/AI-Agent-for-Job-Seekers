@@ -56,6 +56,17 @@ export async function uploadCV(formData) {
   return res.json();
 }
 
+export async function recalculateJobs(data) {
+  const res = await fetch(`${API}/job/recalculate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  return res.json();
+}
+
 export async function analyzeJob(data) {
   const res = await fetch(`${API}/job/analyze`, {
     method: "POST",

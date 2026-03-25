@@ -17,6 +17,7 @@ from app.services.cache_service import cache_get, cache_set
 from app.schemas.auth import SignupRequest, LoginRequest
 from app.schemas.job_preference import JobPreference
 from app.schemas.job_analysis import JobAnalysisRequest
+from app.schemas.job_recalculate import JobRecalculateRequest
 from app.schemas.job_question import JobQuestionRequest
 
 from app.utils.file_utils import validate_file
@@ -127,12 +128,11 @@ async def upload_cv(
     reader=Depends(get_reader),
     skill_extractor=Depends(get_skill_extractor),
 ):
-    # Validate file type
+    # Validate file
     validate_file(file)
 
     # Save file
     file_path = UPLOAD_DIR / f"{uuid4()}_{file.filename}"
-
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
@@ -142,17 +142,48 @@ async def upload_cv(
     except Exception:
         raise HTTPException(status_code=400, detail="Failed to parse CV")
 
-    # Cache check
-    cache_key = f"jobs:{user.id}:{hash(text)}"
+    # FIND EXISTING CV
+    cv = (
+        db.query(CVDocuments)
+        .filter(
+            CVDocuments.user_id == user.id,
+            CVDocuments.content == text,
+        )
+        .first()
+    )
+
+    if not cv:
+        cv = CVDocuments(
+            user_id=user.id,
+            file_path=str(file_path),
+            content=text,
+        )
+        db.add(cv)
+        db.commit()
+        db.refresh(cv)
+        print("Created new CV")
+    else:
+        print("Reusing existing CV")
+
+    # CACHE SKILLS (REDIS)
+    skill_cache_key = f"skills:{user.id}:{hash(text)}"
+    skills = cache_get(skill_cache_key)
+
+    if not skills:
+        skills = await skill_extractor.extract_skills(text)
+        cache_set(skill_cache_key, skills)
+        print("Extracted & cached skills")
+    else:
+        print("Loaded skills from cache")
+
+    # CACHE JOB RESULTS
+    cache_key = f"jobs:{user.id}:{cv.id}:{job_preference.job_function}:{job_preference.job_type}:{job_preference.location}"
     cached = cache_get(cache_key)
 
     if cached:
         return cached
 
-    # Extract skills
-    skills = await skill_extractor.extract_skills(text)
-
-    # Match jobs
+    # MATCH JOBS
     result = index_manager.matchJobs(
         text=text,
         skills=skills,
@@ -161,36 +192,111 @@ async def upload_cv(
         location=job_preference.location,
     )
 
-    # Save CV
-    cv = CVDocuments(
-        user_id=user.id,
-        file_path=str(file_path),
-        content=text,
+    # UPSERT HISTORY (1 per CV)
+    history = (
+        db.query(JobMatchedHistory)
+        .filter(
+            JobMatchedHistory.user_id == user.id,
+            JobMatchedHistory.cv_id == cv.id,
+        )
+        .first()
     )
-    db.add(cv)
-    db.commit()
-    db.refresh(cv)
 
-    # Save matched jobs history
-    history = JobMatchedHistory(
-        user_id=user.id,
-        cv_id=cv.id,
-        jobs=result["jobs"],
-    )
-    db.add(history)
+    if history:
+        history.job_function = job_preference.job_function
+        history.job_type = job_preference.job_type
+        history.location = job_preference.location
+        history.jobs = result["jobs"]
+        print("Updated history")
+    else:
+        history = JobMatchedHistory(
+            user_id=user.id,
+            cv_id=cv.id,
+            job_function=job_preference.job_function,
+            job_type=job_preference.job_type,
+            location=job_preference.location,
+            jobs=result["jobs"],
+        )
+        db.add(history)
+        print("Created history")
+
     db.commit()
 
     response = {
+        "cv_id": cv.id,
         "cv_text": text,
         "skills": skills,
         "warning": result["warning"],
         "jobs": result["jobs"],
     }
 
-    # Cache result
     cache_set(cache_key, response)
 
     return response
+
+
+@router.post("/job/recalculate")
+async def recalculate_jobs(
+    data: JobRecalculateRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    skill_extractor=Depends(get_skill_extractor),
+):
+    text = data.cv_text
+
+    # CACHE SKILLS (REDIS)
+    skill_cache_key = f"skills:{user.id}:{hash(text)}"
+    cached_skills = cache_get(skill_cache_key)
+
+    if cached_skills:
+        skills = cached_skills
+        print("Loaded skills from cache")
+    else:
+        skills = await skill_extractor.extract_skills(text)
+        cache_set(skill_cache_key, skills)
+        print("Extracted & cached skills")
+
+    # MATCH JOBS
+    result = index_manager.matchJobs(
+        text=text,
+        skills=skills,
+        job_function=data.job_function,
+        job_type=data.job_type,
+        location=data.location,
+    )
+
+    # Update job match history
+    history = (
+        db.query(JobMatchedHistory)
+        .filter(
+            JobMatchedHistory.cv_id == data.cv_id,
+            JobMatchedHistory.user_id == user.id,
+        )
+        .first()
+    )
+
+    if history:
+        history.jobs = result["jobs"]
+        history.job_function = data.job_function
+        history.job_type = data.job_type
+        history.location = data.location
+    else:
+        history = JobMatchedHistory(
+            user_id=user.id,
+            cv_id=data.cv_id,
+            jobs=result["jobs"],
+            job_function=data.job_function,
+            job_type=data.job_type,
+            location=data.location,
+        )
+        db.add(history)
+
+    db.commit()
+
+    return {
+        "jobs": result["jobs"],
+        "warning": result["warning"],
+    }
 
 
 # --------------------------------------------------
@@ -272,6 +378,9 @@ def get_dashboard(
             {
                 "cv_id": h.cv_id,
                 "cv_text": cv.content if cv else "",
+                "job_function": h.job_function,
+                "job_type": h.job_type,
+                "location": h.location,
                 "jobs": h.jobs,
             }
         )

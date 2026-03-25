@@ -23,7 +23,7 @@ function Signup() {
       const res = await signup({ email, password });
 
       if (res.message) {
-        navigate("/login");
+        navigate("/analyze");
       } else {
         setError(res.detail || "Signup failed");
       }
