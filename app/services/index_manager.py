@@ -179,11 +179,15 @@ Skills: {", ".join(all_skills)}
             # scoring
             # -------------------------
 
-            overlap = len(job_skills.intersection(cv_skills))
+            # Normalize skills overlap
+            overlap_count = len(job_skills.intersection(cv_skills))
+            overlap_ratio = overlap_count / max(len(job_skills), 1)
 
+            # Binary scores
             function_score = (
                 1 if job_function and job_function.lower() in job_function_val else 0
             )
+
             type_score = 1 if job_type and job_type.lower() in job_type_val else 0
 
             location_score = (
@@ -192,21 +196,34 @@ Skills: {", ".join(all_skills)}
 
             remote_score = 1 if job.get("work_from_home") else 0
 
-            semantic_score = 1  # retrieved by vector search
+            semantic_score = 1
 
-            final_score = (
-                overlap * 3
-                + function_score * 2
-                + type_score * 1
-                + location_score * 2
-                + remote_score * 1
-                + semantic_score
+            # Weighted scoring (TOTAL = 100)
+            WEIGHTS = {
+                "skills": 50,
+                "function": 15,
+                "type": 10,
+                "location": 15,
+                "remote": 5,
+                "semantic": 5,
+            }
+
+            score_100 = (
+                overlap_ratio * WEIGHTS["skills"]
+                + function_score * WEIGHTS["function"]
+                + type_score * WEIGHTS["type"]
+                + location_score * WEIGHTS["location"]
+                + remote_score * WEIGHTS["remote"]
+                + semantic_score * WEIGHTS["semantic"]
             )
 
-            job_with_score = job.copy()
-            job_with_score["score"] = final_score
+            score_100 = min(round(score_100), 100)
 
-            ranked.append((final_score, job_with_score))
+            # Attach score
+            job_with_score = job.copy()
+            job_with_score["score"] = score_100
+
+            ranked.append((score_100, job_with_score))
 
         ranked.sort(key=lambda x: x[0], reverse=True)
 

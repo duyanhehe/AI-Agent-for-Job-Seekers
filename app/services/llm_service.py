@@ -41,7 +41,6 @@ Job:
 Return JSON:
 
 {{
-"match_score": number,
 "key_skills": [],
 "missing_skills": [],
 "summary": ""
