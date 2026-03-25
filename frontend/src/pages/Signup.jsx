@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { signup } from "../services/api";
 import Layout from "../components/Layout";
 import Spinner from "../components/Spinner";
+import useAuthForm from "../hooks/useAuthForm";
 
 function Signup() {
   const navigate = useNavigate();
@@ -10,35 +11,20 @@ function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { loading, error, handleSubmit } = useAuthForm(signup, () =>
+    navigate("/analyze"),
+  );
 
-  async function handleSubmit(e) {
+  function onSubmit(e) {
     e.preventDefault();
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await signup({ email, password });
-
-      if (res.message) {
-        navigate("/analyze");
-      } else {
-        setError(res.detail || "Signup failed");
-      }
-    } catch {
-      setError("Something went wrong");
-    }
-
-    setLoading(false);
+    handleSubmit({ email, password });
   }
 
   return (
     <Layout>
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
         <form
-          onSubmit={handleSubmit}
+          onSubmit={onSubmit}
           className="bg-white p-8 rounded shadow w-[400px] space-y-4"
         >
           <h2 className="text-xl font-bold text-center">Sign Up</h2>

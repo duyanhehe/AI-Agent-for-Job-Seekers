@@ -1,77 +1,31 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getJobFunctions, getCountries, uploadCV } from "../services/api";
 import Spinner from "../components/Spinner";
+import useCVUploader from "../hooks/useCVUploader";
 
 function CVUploader() {
   const navigate = useNavigate();
 
-  const [jobFunctions, setJobFunctions] = useState([]);
-  const [countries, setCountries] = useState([]);
-
-  const [jobFunction, setJobFunction] = useState("");
-  const [jobType, setJobType] = useState("");
-  const [location, setLocation] = useState("");
-  const [file, setFile] = useState(null);
-
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    async function loadData() {
-      const jf = await getJobFunctions();
-      const c = await getCountries();
-
-      setJobFunctions(jf.job_functions);
-      setCountries(c.countries);
-    }
-
-    loadData();
-  }, []);
-
-  function handleFileChange(f) {
-    if (!f) return;
-    setFile(f);
-  }
-
-  function handleDrop(e) {
-    e.preventDefault();
-    const droppedFile = e.dataTransfer.files[0];
-    handleFileChange(droppedFile);
-  }
-
-  function handleDragOver(e) {
-    e.preventDefault();
-  }
-
-  const isFormValid =
-    jobFunction !== "" && jobType !== "" && location !== "" && file !== null;
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-
-    if (!isFormValid || loading) return;
-
-    setLoading(true);
-
-    const formData = new FormData();
-
-    formData.append("job_function", jobFunction);
-    formData.append("job_type", jobType);
-    formData.append("location", location);
-    formData.append("file", file);
-
-    try {
-      const result = await uploadCV(formData);
-      navigate("/jobs", { state: result });
-    } finally {
-      setLoading(false);
-    }
-  }
+  const {
+    jobFunctions,
+    countries,
+    jobFunction,
+    setJobFunction,
+    jobType,
+    setJobType,
+    location,
+    setLocation,
+    file,
+    loading,
+    isFormValid,
+    handleFileChange,
+    handleDrop,
+    handleDragOver,
+    handleSubmit,
+  } = useCVUploader(navigate);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* JOB FUNCTION */}
-
       <div>
         <label className="font-semibold">
           <span className="text-red-500">*</span> Job Function
@@ -95,7 +49,6 @@ function CVUploader() {
       </div>
 
       {/* JOB TYPE */}
-
       <div>
         <label className="font-semibold">
           <span className="text-red-500">*</span> Job Type
@@ -124,7 +77,6 @@ function CVUploader() {
       </div>
 
       {/* LOCATION */}
-
       <div>
         <label className="font-semibold">
           <span className="text-red-500">*</span> Location
@@ -148,7 +100,6 @@ function CVUploader() {
       </div>
 
       {/* CV UPLOAD */}
-
       <div>
         <label className="font-semibold">
           <span className="text-red-500">*</span> Upload Your CV
@@ -173,7 +124,6 @@ function CVUploader() {
             ) : (
               <>
                 <p className="font-medium">Upload docx/pdf files</p>
-
                 <p className="text-sm text-gray-500 mt-2">
                   Drag & drop your CV here or click to upload
                 </p>
@@ -184,7 +134,6 @@ function CVUploader() {
       </div>
 
       {/* SUBMIT */}
-
       <button
         type="submit"
         disabled={!isFormValid || loading}

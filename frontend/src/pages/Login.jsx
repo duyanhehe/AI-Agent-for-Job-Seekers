@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { login, getDashboard } from "../services/api";
 import Layout from "../components/Layout";
 import Spinner from "../components/Spinner";
+import useAuthForm from "../hooks/useAuthForm";
 
 function Login() {
   const navigate = useNavigate();
@@ -10,53 +11,35 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { loading, error, handleSubmit } = useAuthForm(login, async () => {
+    const dashboard = await getDashboard();
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+    if (dashboard?.job_history?.length > 0) {
+      const latest = dashboard.job_history[0];
 
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await login({ email, password });
-
-      if (!res.ok) {
-        setError(res.data.detail || "Login failed");
-        setLoading(false);
-        return;
-      }
-
-      // Check if user has job history
-      const dashboard = await getDashboard();
-
-      if (dashboard?.job_history?.length > 0) {
-        const latest = dashboard.job_history[0];
-
-        navigate("/jobs", {
-          state: {
-            cv_text: latest.cv_text || "",
-            skills: [],
-            warning: "",
-            jobs: latest.jobs,
-          },
-        });
-      } else {
-        navigate("/analyze");
-      }
-    } catch {
-      setError("Server error");
+      navigate("/jobs", {
+        state: {
+          cv_text: latest.cv_text || "",
+          skills: [],
+          warning: "",
+          jobs: latest.jobs,
+        },
+      });
+    } else {
+      navigate("/analyze");
     }
+  });
 
-    setLoading(false);
+  function onSubmit(e) {
+    e.preventDefault();
+    handleSubmit({ email, password });
   }
 
   return (
     <Layout>
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
         <form
-          onSubmit={handleSubmit}
+          onSubmit={onSubmit}
           className="bg-white p-8 rounded shadow w-[400px] space-y-4"
         >
           <h2 className="text-xl font-bold text-center">Login</h2>
@@ -90,7 +73,7 @@ function Login() {
           </button>
 
           <p className="text-sm text-center">
-            Don’t have an account?{" "}
+            Don't have an account?{" "}
             <span
               className="text-blue-500 cursor-pointer"
               onClick={() => navigate("/signup")}

@@ -1,150 +1,42 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import {
-  getDashboard,
-  getJobFunctions,
-  getCountries,
-  recalculateJobs,
-} from "../services/api";
-
+import Layout from "../components/Layout";
 import JobCard from "../components/JobCard";
 import AIAgentPanel from "../components/AIAgentPanel";
-import Layout from "../components/Layout";
 import Spinner from "../components/Spinner";
+import useJobsMatched from "../hooks/useJobsMatched";
 
 function JobsMatched() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [data, setData] = useState(location.state || null);
-  const [cvList, setCvList] = useState([]);
-  const [activeCV, setActiveCV] = useState(null);
-  const [selectedJob, setSelectedJob] = useState(null);
-  const [chatHistory, setChatHistory] = useState([]);
+  const {
+    data,
+    cvList,
+    activeCV,
+    setActiveCV,
+    selectedJob,
+    setSelectedJob,
+    chatHistory,
 
-  const [jobFunctions, setJobFunctions] = useState([]);
-  const [countries, setCountries] = useState([]);
-  const [dateFilter, setDateFilter] = useState("");
+    jobFunctions,
+    countries,
+    dateFilter,
+    setDateFilter,
 
-  const [loadingRecalc, setLoadingRecalc] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+    loadingRecalc,
+    hasChanges,
+    setHasChanges,
 
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const jobsPerPage = 10;
+    currentPage,
+    setCurrentPage,
+    currentJobs,
+    totalPages,
+    indexOfFirst,
+    indexOfLast,
 
-  // -------------------------
-  // INITIAL LOAD
-  // -------------------------
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const dashboard = await getDashboard();
-
-        const uniqueCVs = [];
-        const seen = new Set();
-
-        (dashboard.job_history || []).forEach((cv) => {
-          if (!seen.has(cv.cv_id)) {
-            seen.add(cv.cv_id);
-            uniqueCVs.push(cv);
-          }
-        });
-
-        setCvList(uniqueCVs);
-
-        setChatHistory(
-          (dashboard.chat_history || []).map((c) => ({
-            job_id: c.job_id,
-            question: c.question,
-            answer: c.answer,
-          })),
-        );
-
-        const jf = await getJobFunctions();
-        setJobFunctions(jf.job_functions || []);
-
-        const ct = await getCountries();
-        setCountries(ct.countries || []);
-
-        if (data) {
-          const matchedCV = dashboard.job_history.find(
-            (cv) => cv.cv_text === data.cv_text,
-          );
-          if (matchedCV) setActiveCV(matchedCV);
-          return;
-        }
-
-        if (dashboard.job_history.length > 0) {
-          const first = dashboard.job_history[0];
-
-          setActiveCV(first);
-          setData({
-            cv_text: first.cv_text,
-            jobs: first.jobs,
-          });
-        } else {
-          navigate("/analyze");
-        }
-      } catch {
-        navigate("/login");
-      }
-    }
-
-    loadData();
-  }, []);
-
-  // -------------------------
-  // AUTO SELECT JOB
-  // -------------------------
-  useEffect(() => {
-    if (data?.jobs?.length > 0 && !selectedJob) {
-      setSelectedJob(data.jobs[0]);
-    }
-  }, [data]);
-
-  // -------------------------
-  // PAGINATION LOGIC
-  // -------------------------
-  const indexOfLastJob = currentPage * jobsPerPage;
-  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
-
-  const currentJobs = data.jobs.slice(indexOfFirstJob, indexOfLastJob);
-  const totalPages = Math.ceil(data.jobs.length / jobsPerPage);
-
-  // -------------------------
-  // RECALCULATE
-  // -------------------------
-  async function handleRecalculate() {
-    if (!activeCV) return;
-
-    setLoadingRecalc(true);
-
-    try {
-      const result = await recalculateJobs({
-        cv_id: activeCV.cv_id,
-        cv_text: activeCV.cv_text,
-        job_function: activeCV.job_function,
-        job_type: activeCV.job_type,
-        location: activeCV.location,
-        date_filter: dateFilter,
-      });
-
-      setData({
-        cv_text: activeCV.cv_text,
-        jobs: result.jobs,
-        warning: result.warning,
-      });
-
-      setSelectedJob(null);
-      setHasChanges(false);
-      setCurrentPage(1); // reset page
-    } catch (err) {
-      console.error(err);
-    }
-
-    setLoadingRecalc(false);
-  }
+    handleRecalculate,
+    setData,
+  } = useJobsMatched(location, navigate);
 
   if (!data) return <p className="p-6">Loading...</p>;
 
@@ -166,7 +58,7 @@ function JobsMatched() {
                   });
                   setSelectedJob(null);
                   setHasChanges(false);
-                  setCurrentPage(1); // reset page
+                  setCurrentPage(1);
                 }}
                 className={`px-4 py-3 rounded border text-sm transition ${
                   activeCV?.cv_id === cv.cv_id
@@ -316,9 +208,9 @@ function JobsMatched() {
           {!loadingRecalc && totalPages > 1 && (
             <div className="flex flex-col items-center mt-6 gap-3">
               <p className="text-sm text-gray-500">
-                Showing {indexOfFirstJob + 1}–
-                {Math.min(indexOfLastJob, data.jobs.length)} of{" "}
-                {data.jobs.length} jobs
+                Showing {indexOfFirst + 1}–
+                {Math.min(indexOfLast, data.jobs.length)} of {data.jobs.length}{" "}
+                jobs
               </p>
 
               <div className="flex gap-2 flex-wrap">
@@ -330,12 +222,8 @@ function JobsMatched() {
                   Prev
                 </button>
 
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .slice(
-                    Math.max(currentPage - 2, 0),
-                    Math.min(currentPage + 2, totalPages),
-                  )
-                  .map((page) => (
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
@@ -347,7 +235,8 @@ function JobsMatched() {
                     >
                       {page}
                     </button>
-                  ))}
+                  ),
+                )}
 
                 <button
                   onClick={() =>

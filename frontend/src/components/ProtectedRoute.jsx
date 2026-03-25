@@ -1,25 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getDashboard } from "../services/api";
+import useAuth from "../hooks/useAuth";
 
 function ProtectedRoute({ children }) {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const { isLoggedIn } = useAuth();
 
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        await getDashboard(); // Will fail if not logged in
-        setLoading(false);
-      } catch {
-        navigate("/"); // Redirect to home
-      }
+    if (isLoggedIn === false) {
+      navigate("/");
     }
+  }, [isLoggedIn]);
 
-    checkAuth();
-  }, []);
-
-  if (loading) return <p className="p-6">Checking auth...</p>;
+  // loading state (null = checking)
+  if (isLoggedIn === null) {
+    return <p className="p-6">Checking auth...</p>;
+  }
 
   return children;
 }

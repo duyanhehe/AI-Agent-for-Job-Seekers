@@ -1,35 +1,21 @@
 import { Link, useNavigate } from "react-router-dom";
-import { getDashboard, logout } from "../services/api";
-import { useState, useEffect } from "react";
+import { logout } from "../services/api";
+import { useState } from "react";
+import useAuth from "../hooks/useAuth";
 
 function Navbar() {
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuth();
 
   const [loading, setLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Check login status using backend
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        await getDashboard(); // Will fail if not logged in
-
-        setIsLoggedIn(true);
-      } catch {
-        setIsLoggedIn(false);
-      }
-    }
-
-    checkAuth();
-  }, []);
 
   async function handleLogout() {
     setLoading(true);
 
     try {
       await logout();
-      setIsLoggedIn(false);
       navigate("/");
+      window.location.reload(); // refresh auth state
     } catch {
       alert("Logout failed");
     }
