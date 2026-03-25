@@ -119,6 +119,7 @@ def countries():
 # --------------------------------------------------
 
 
+# Upload CV, extract skills, match jobs, save history, cache results
 @router.post("/upload/cv")
 async def upload_cv(
     job_preference: JobPreference = Depends(job_preference_form),
@@ -151,19 +152,29 @@ async def upload_cv(
         )
         .first()
     )
+    has_primary = (
+        db.query(CVDocuments).filter(
+            CVDocuments.user_id == user.id, CVDocuments.is_primary.is_(True)
+        )
+    ).first()
 
     if not cv:
         cv = CVDocuments(
             user_id=user.id,
             file_path=str(file_path),
+            file_name=file.filename,
             content=text,
+            is_primary=False if has_primary else True,
         )
         db.add(cv)
         db.commit()
         db.refresh(cv)
         print("Created new CV")
     else:
-        print("Reusing existing CV")
+        if not cv.file_name or cv.file_name != file.filename:
+            cv.file_name = file.filename
+            db.commit()
+    print("Reusing existing CV (filename updated)")
 
     # CACHE SKILLS (REDIS)
     skill_cache_key = f"skills:{user.id}:{hash(text)}"
@@ -224,6 +235,7 @@ async def upload_cv(
 
     response = {
         "cv_id": cv.id,
+        "file_name": cv.file_name,
         "cv_text": text,
         "skills": skills,
         "warning": result["warning"],
@@ -235,6 +247,85 @@ async def upload_cv(
     return response
 
 
+# Delete CV + related history
+@router.delete("/cv/{cv_id}")
+def delete_cv(
+    cv_id: int,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    cv = (
+        db.query(CVDocuments)
+        .filter(CVDocuments.id == cv_id, CVDocuments.user_id == user.id)
+        .first()
+    )
+
+    if not cv:
+        raise HTTPException(status_code=404, detail="CV not found")
+
+    # delete related history
+    db.query(JobMatchedHistory).filter(JobMatchedHistory.cv_id == cv_id).delete()
+
+    # delete related chats
+    db.query(ChatHistory).filter(ChatHistory.user_id == user.id).delete()
+
+    db.delete(cv)
+    db.commit()
+
+    return {"message": "CV deleted"}
+
+
+# Rename CV
+@router.put("/cv/{cv_id}/rename")
+def rename_cv(
+    cv_id: int,
+    new_name: str = Form(...),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    cv = (
+        db.query(CVDocuments)
+        .filter(CVDocuments.id == cv_id, CVDocuments.user_id == user.id)
+        .first()
+    )
+
+    if not cv:
+        raise HTTPException(status_code=404, detail="CV not found")
+
+    cv.file_name = new_name
+    db.commit()
+
+    return {"message": "Renamed", "file_name": new_name}
+
+
+# Set primary CV
+@router.put("/cv/{cv_id}/set-primary")
+def set_primary_cv(
+    cv_id: int,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # reset all
+    db.query(CVDocuments).filter(CVDocuments.user_id == user.id).update(
+        {"is_primary": 0}
+    )
+
+    cv = (
+        db.query(CVDocuments)
+        .filter(CVDocuments.id == cv_id, CVDocuments.user_id == user.id)
+        .first()
+    )
+
+    if not cv:
+        raise HTTPException(status_code=404, detail="CV not found")
+
+    cv.is_primary = 1
+    db.commit()
+
+    return {"message": "Primary CV set"}
+
+
+# Re-analyze job match
 @router.post("/job/recalculate")
 async def recalculate_jobs(
     data: JobRecalculateRequest,
@@ -381,6 +472,8 @@ def get_dashboard(
             {
                 "cv_id": h.cv_id,
                 "cv_text": cv.content if cv else "",
+                "file_name": cv.file_name if cv and cv.file_name else "CV",
+                "is_primary": cv.is_primary if cv else False,
                 "job_function": h.job_function,
                 "job_type": h.job_type,
                 "location": h.location,

@@ -56,6 +56,37 @@ export async function uploadCV(formData) {
   return res.json();
 }
 
+export async function deleteCVAPI(cv_id) {
+  const res = await fetch(`${API}/cv/${cv_id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  return res.json();
+}
+
+export async function renameCVAPI(cv_id, newName) {
+  const formData = new FormData();
+  formData.append("new_name", newName);
+
+  const res = await fetch(`${API}/cv/${cv_id}/rename`, {
+    method: "PUT",
+    credentials: "include",
+    body: formData,
+  });
+
+  return res.json();
+}
+
+export async function setPrimaryCVAPI(cv_id) {
+  const res = await fetch(`${API}/cv/${cv_id}/set-primary`, {
+    method: "PUT",
+    credentials: "include",
+  });
+
+  return res.json();
+}
+
 export async function recalculateJobs(data) {
   const res = await fetch(`${API}/job/recalculate`, {
     method: "POST",

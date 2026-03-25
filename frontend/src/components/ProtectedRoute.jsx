@@ -12,7 +12,6 @@ function ProtectedRoute({ children }) {
     }
   }, [isLoggedIn]);
 
-  // loading state (null = checking)
   if (isLoggedIn === null) {
     return <p className="p-6">Checking auth...</p>;
   }

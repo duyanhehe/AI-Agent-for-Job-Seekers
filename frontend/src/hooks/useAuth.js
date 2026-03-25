@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
-import { getDashboard } from "../services/api";
+import { createContext, useContext, useEffect, useState } from "react";
+import { getDashboard, logout as logoutAPI } from "../services/api";
 
-export default function useAuth() {
-  const [isLoggedIn, setIsLoggedIn] = useState(null);
+const AuthContext = createContext();
 
+export function AuthProvider({ children }) {
+  const [isLoggedIn, setIsLoggedIn] = useState(null); // null = loading
+
+  // check auth once
   useEffect(() => {
     async function checkAuth() {
       try {
@@ -17,5 +20,20 @@ export default function useAuth() {
     checkAuth();
   }, []);
 
-  return { isLoggedIn };
+  // logout handler
+  const logout = async () => {
+    await logoutAPI();
+    setIsLoggedIn(false);
+  };
+
+  return (
+    <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// hook
+export default function useAuth() {
+  return useContext(AuthContext);
 }

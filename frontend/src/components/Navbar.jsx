@@ -1,11 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
-import { logout } from "../services/api";
 import { useState } from "react";
 import useAuth from "../hooks/useAuth";
 
 function Navbar() {
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, logout } = useAuth();
 
   const [loading, setLoading] = useState(false);
 
@@ -15,7 +14,6 @@ function Navbar() {
     try {
       await logout();
       navigate("/");
-      window.location.reload(); // refresh auth state
     } catch {
       alert("Logout failed");
     }
@@ -25,21 +23,29 @@ function Navbar() {
 
   return (
     <nav className="w-full bg-white border-b shadow-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+      <div className="w-full px-6 py-3 flex items-center justify-between">
         {/* LEFT */}
-        <Link
-          to="/"
-          className="text-xl font-bold text-blue-600 hover:text-blue-700"
-        >
-          AI Job Seeker
-        </Link>
+        <div className="flex items-center gap-4">
+          <img
+            src="/icon.png"
+            alt="logo"
+            className="w-16 h-16 object-contain"
+          />
+
+          <Link
+            to="/"
+            className="text-2xl font-bold text-blue-600 hover:text-blue-700"
+          >
+            AI Job Seeker
+          </Link>
+        </div>
 
         {/* RIGHT */}
         {isLoggedIn && (
           <button
             onClick={handleLogout}
             disabled={loading}
-            className="text-sm bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+            className="text-sm bg-red-500 text-white px-5 py-2 rounded hover:bg-red-600"
           >
             {loading ? "Signing out..." : "Sign out"}
           </button>

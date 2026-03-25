@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean
 from app.core.database import Base
 
 
@@ -8,4 +8,6 @@ class CVDocuments(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     file_path = Column(String)
+    file_name = Column(String)
     content = Column(Text)
+    is_primary = Column(Boolean, default=False)

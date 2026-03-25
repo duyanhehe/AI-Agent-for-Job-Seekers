@@ -7,7 +7,7 @@ import {
 } from "../services/api";
 
 export default function useJobsMatched(location, navigate) {
-  const [data, setData] = useState(location.state || null);
+  const [data, setData] = useState(null);
   const [cvList, setCvList] = useState([]);
   const [activeCV, setActiveCV] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -29,6 +29,7 @@ export default function useJobsMatched(location, navigate) {
       try {
         const dashboard = await getDashboard();
 
+        // UNIQUE CVS
         const uniqueCVs = [];
         const seen = new Set();
 
@@ -41,6 +42,7 @@ export default function useJobsMatched(location, navigate) {
 
         setCvList(uniqueCVs);
 
+        // CHAT
         setChatHistory(
           (dashboard.chat_history || []).map((c) => ({
             job_id: c.job_id,
@@ -49,42 +51,52 @@ export default function useJobsMatched(location, navigate) {
           })),
         );
 
+        // DROPDOWNS
         const jf = await getJobFunctions();
         const ct = await getCountries();
 
         setJobFunctions(jf.job_functions || []);
         setCountries(ct.countries || []);
 
-        if (data) {
-          const matched = dashboard.job_history.find(
-            (cv) => cv.cv_text === data.cv_text,
-          );
-          if (matched) setActiveCV(matched);
-          return;
+        // HANDLE Resume to Jobs navigation
+        if (location.state?.selectedCV) {
+          const selected = location.state.selectedCV;
+
+          setActiveCV(selected);
+          setData({
+            cv_text: selected.cv_text,
+            jobs: selected.jobs,
+          });
+
+          return; // STOP everything else
         }
 
+        // FALLBACK (normal load)
         if (dashboard.job_history.length > 0) {
-          const first = dashboard.job_history[0];
+          const primary =
+            dashboard.job_history.find((cv) => cv.is_primary) ||
+            dashboard.job_history[0];
 
-          setActiveCV(first);
+          setActiveCV(primary);
           setData({
-            cv_text: first.cv_text,
-            jobs: first.jobs,
+            cv_text: primary.cv_text,
+            jobs: primary.jobs,
           });
         } else {
           navigate("/analyze");
         }
-      } catch {
+      } catch (err) {
+        console.error(err);
         navigate("/login");
       }
     }
 
     load();
-  }, []);
+  }, [location.state]);
 
   // AUTO SELECT JOB
   useEffect(() => {
-    if (data?.jobs?.length > 0 && !selectedJob) {
+    if (data?.jobs?.length > 0) {
       setSelectedJob(data.jobs[0]);
     }
   }, [data]);

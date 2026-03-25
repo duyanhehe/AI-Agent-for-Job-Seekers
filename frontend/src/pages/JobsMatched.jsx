@@ -42,34 +42,17 @@ function JobsMatched() {
 
   return (
     <Layout>
-      <div className="flex h-[calc(100vh-60px)] bg-gray-100 overflow-hidden">
+      <div className="flex h-full bg-gray-100 overflow-hidden">
         {/* LEFT */}
         <div className="w-2/3 p-8 overflow-y-auto">
-          {/* CV TABS */}
-          <div className="flex gap-2 mb-6 flex-wrap">
-            {cvList.map((cv, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setActiveCV(cv);
-                  setData({
-                    cv_text: cv.cv_text,
-                    jobs: cv.jobs,
-                  });
-                  setSelectedJob(null);
-                  setHasChanges(false);
-                  setCurrentPage(1);
-                }}
-                className={`px-4 py-3 rounded border text-sm transition ${
-                  activeCV?.cv_id === cv.cv_id
-                    ? "bg-blue-600 text-white border-blue-600 shadow-md"
-                    : "bg-white text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <span className="font-semibold">CV {index + 1}</span>
-              </button>
-            ))}
-          </div>
+          {/* ACTIVE CV */}
+          {activeCV && (
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold">
+                {activeCV.file_name || "Selected CV"}
+              </h2>
+            </div>
+          )}
 
           {/* FILTERS */}
           {activeCV && (
