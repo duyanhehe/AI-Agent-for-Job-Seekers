@@ -1,28 +1,19 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getDashboard } from "../services/api";
+import { useAuth, useDashboard } from "../hooks/useAuth";
 import Layout from "../components/Layout";
 
 function Home() {
   const navigate = useNavigate();
-
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { isLoggedIn } = useAuth();
+  const { dashboard, dashboardLoading } = useDashboard();
   const [hasHistory, setHasHistory] = useState(false);
 
   useEffect(() => {
-    async function checkUser() {
-      try {
-        const dashboard = await getDashboard();
-
-        setIsLoggedIn(true);
-        setHasHistory(dashboard?.job_history?.length > 0);
-      } catch {
-        setIsLoggedIn(false);
-      }
+    if (!dashboardLoading && dashboard) {
+      setHasHistory(dashboard?.job_history?.length > 0);
     }
-
-    checkUser();
-  }, []);
+  }, [dashboard, dashboardLoading]);
 
   return (
     <Layout>

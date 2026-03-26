@@ -1,28 +1,30 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login, getDashboard } from "../services/api";
+import { login } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 import Layout from "../components/Layout";
 import Spinner from "../components/Spinner";
 import useAuthForm from "../hooks/useAuthForm";
 
 function Login() {
   const navigate = useNavigate();
+  const { fetchDashboard } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const { loading, error, handleSubmit } = useAuthForm(login, async () => {
-    const dashboard = await getDashboard();
+    // Fetch dashboard and update isLoggedIn in context
+    const dashboard = await fetchDashboard();
 
+    // Now isLoggedIn is true in context, safe to navigate
     if (dashboard?.job_history?.length > 0) {
-      const latest = dashboard.job_history[0];
-
       navigate("/jobs", {
         state: {
-          cv_text: latest.cv_text || "",
+          cv_text: dashboard.job_history[0].cv_text || "",
           skills: [],
           warning: "",
-          jobs: latest.jobs,
+          jobs: dashboard.job_history[0].jobs,
         },
       });
     } else {

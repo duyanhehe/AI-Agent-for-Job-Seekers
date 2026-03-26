@@ -1,19 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signup } from "../services/api";
+import { signup, login } from "../services/api";
+import { useAuth } from "../hooks/useAuth";
 import Layout from "../components/Layout";
 import Spinner from "../components/Spinner";
 import useAuthForm from "../hooks/useAuthForm";
 
 function Signup() {
   const navigate = useNavigate();
+  const { fetchDashboard } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const { loading, error, handleSubmit } = useAuthForm(signup, () =>
-    navigate("/analyze"),
-  );
+  const { loading, error, handleSubmit } = useAuthForm(signup, async () => {
+    // Auto-login after signup
+    await login({ email, password });
+    // Fetch dashboard to update context
+    await fetchDashboard();
+    navigate("/analyze");
+  });
 
   function onSubmit(e) {
     e.preventDefault();

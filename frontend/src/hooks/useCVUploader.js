@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getJobFunctions, getCountries, uploadCV } from "../services/api";
 
-export default function useCVUploader(navigate) {
+export default function useCVUploader(navigate, fetchDashboard) {
   const [jobFunctions, setJobFunctions] = useState([]);
   const [countries, setCountries] = useState([]);
 
@@ -54,8 +54,12 @@ export default function useCVUploader(navigate) {
     formData.append("file", file);
 
     try {
-      const result = await uploadCV(formData);
-      navigate("/jobs", { state: result });
+      await uploadCV(formData);
+      // Refresh dashboard to get new CV data
+      await fetchDashboard();
+      navigate("/jobs");
+    } catch (err) {
+      console.error("Upload failed:", err);
     } finally {
       setLoading(false);
     }

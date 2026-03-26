@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import Spinner from "../components/Spinner";
 import useCVUploader from "../hooks/useCVUploader";
 
 function CVUploader() {
   const navigate = useNavigate();
+  const { fetchDashboard } = useAuth();
 
   const {
     jobFunctions,
@@ -21,7 +23,7 @@ function CVUploader() {
     handleDrop,
     handleDragOver,
     handleSubmit,
-  } = useCVUploader(navigate);
+  } = useCVUploader(navigate, fetchDashboard);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

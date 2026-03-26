@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import {
-  getDashboard,
   getJobFunctions,
   getCountries,
   recalculateJobs,
 } from "../services/api";
+import { useDashboard } from "./useAuth";
+import usePagination from "./usePagination";
 
 export default function useJobsMatched(location, navigate) {
+  const { dashboard, dashboardLoading, refreshDashboard } = useDashboard();
+
   const [data, setData] = useState(null);
   const [cvList, setCvList] = useState([]);
   const [activeCV, setActiveCV] = useState(null);
@@ -20,125 +23,113 @@ export default function useJobsMatched(location, navigate) {
   const [loadingRecalc, setLoadingRecalc] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
-  const [currentPage, setCurrentPage] = useState(1);
   const jobsPerPage = 10;
+  const {
+    page: currentPage,
+    setPage: setCurrentPage,
+    totalPages,
+    currentItems: currentJobs,
+  } = usePagination(data?.jobs || [], jobsPerPage);
 
-  // LOAD
+  // Calculate indices for pagination display
+  const indexOfFirst = (currentPage - 1) * jobsPerPage;
+  const indexOfLast = indexOfFirst + jobsPerPage;
+
+  // LOAD - Use dashboard from context
   useEffect(() => {
-    async function load() {
-      try {
-        const dashboard = await getDashboard();
+    if (dashboardLoading || !dashboard) return;
 
-        // UNIQUE CVS
-        const uniqueCVs = [];
-        const seen = new Set();
+    try {
+      // UNIQUE CVS
+      const uniqueCVs = [];
+      const seen = new Set();
 
-        (dashboard.job_history || []).forEach((cv) => {
-          if (!seen.has(cv.cv_id)) {
-            seen.add(cv.cv_id);
-            uniqueCVs.push(cv);
-          }
+      (dashboard.job_history || []).forEach((cv) => {
+        if (!seen.has(cv.cv_id)) {
+          seen.add(cv.cv_id);
+          uniqueCVs.push(cv);
+        }
+      });
+
+      setCvList(uniqueCVs);
+
+      // CHAT
+      setChatHistory(
+        (dashboard.chat_history || []).map((c) => ({
+          job_id: c.job_id,
+          question: c.question,
+          answer: c.answer,
+        })),
+      );
+
+      // HANDLE Resume to Jobs navigation
+      if (location.state?.selectedCV) {
+        const selected = location.state.selectedCV;
+
+        setActiveCV(selected);
+        setData({
+          cv_text: selected.cv_text,
+          jobs: selected.jobs,
         });
 
-        setCvList(uniqueCVs);
+        return; // STOP everything else
+      }
 
-        // CHAT
-        setChatHistory(
-          (dashboard.chat_history || []).map((c) => ({
-            job_id: c.job_id,
-            question: c.question,
-            answer: c.answer,
-          })),
-        );
+      // FALLBACK (normal load)
+      if (dashboard.job_history.length > 0) {
+        const primary =
+          dashboard.job_history.find((cv) => cv.is_primary) ||
+          dashboard.job_history[0];
 
-        // DROPDOWNS
+        setActiveCV(primary);
+        setData({
+          cv_text: primary.cv_text,
+          jobs: primary.jobs,
+        });
+      } else {
+        navigate("/analyze");
+      }
+    } catch (err) {
+      console.error(err);
+      navigate("/login");
+    }
+  }, [dashboard, dashboardLoading, location.state?.selectedCV, navigate]);
+
+  // Load dropdowns
+  useEffect(() => {
+    async function loadDropdowns() {
+      try {
         const jf = await getJobFunctions();
         const ct = await getCountries();
 
         setJobFunctions(jf.job_functions || []);
         setCountries(ct.countries || []);
-
-        // HANDLE Resume to Jobs navigation
-        if (location.state?.selectedCV) {
-          const selected = location.state.selectedCV;
-
-          setActiveCV(selected);
-          setData({
-            cv_text: selected.cv_text,
-            jobs: selected.jobs,
-          });
-
-          return; // STOP everything else
-        }
-
-        // FALLBACK (normal load)
-        if (dashboard.job_history.length > 0) {
-          const primary =
-            dashboard.job_history.find((cv) => cv.is_primary) ||
-            dashboard.job_history[0];
-
-          setActiveCV(primary);
-          setData({
-            cv_text: primary.cv_text,
-            jobs: primary.jobs,
-          });
-        } else {
-          navigate("/analyze");
-        }
       } catch (err) {
         console.error(err);
-        navigate("/login");
       }
     }
 
-    load();
-  }, [location.state]);
+    loadDropdowns();
+  }, []);
 
   // AUTO SELECT JOB
   useEffect(() => {
     if (data?.jobs?.length > 0) {
       setSelectedJob(data.jobs[0]);
     }
-  }, [data]);
+  }, [data?.jobs]);
 
-  // PAGINATION
-  const indexOfLast = currentPage * jobsPerPage;
-  const indexOfFirst = indexOfLast - jobsPerPage;
-
-  const currentJobs = data?.jobs?.slice(indexOfFirst, indexOfLast) || [];
-  const totalPages = data?.jobs ? Math.ceil(data.jobs.length / jobsPerPage) : 0;
-
-  // RECALCULATE
-  async function handleRecalculate() {
-    if (!activeCV) return;
-
+  const handleRecalculate = async (formData) => {
     setLoadingRecalc(true);
-
     try {
-      const result = await recalculateJobs({
-        cv_id: activeCV.cv_id,
-        cv_text: activeCV.cv_text,
-        job_function: activeCV.job_function,
-        job_type: activeCV.job_type,
-        location: activeCV.location,
-        date_filter: dateFilter,
-      });
-
-      setData({
-        cv_text: activeCV.cv_text,
-        jobs: result.jobs,
-        warning: result.warning,
-      });
-
-      setSelectedJob(null);
+      await recalculateJobs(formData);
       setHasChanges(false);
-      setCurrentPage(1);
+      await refreshDashboard();
     } catch (err) {
       console.error(err);
     }
-
     setLoadingRecalc(false);
-  }
+  };
 
   return {
     data,
@@ -148,24 +139,21 @@ export default function useJobsMatched(location, navigate) {
     selectedJob,
     setSelectedJob,
     chatHistory,
-
     jobFunctions,
     countries,
     dateFilter,
     setDateFilter,
-
     loadingRecalc,
+    handleRecalculate,
     hasChanges,
     setHasChanges,
-
     currentPage,
     setCurrentPage,
+    jobsPerPage,
     currentJobs,
     totalPages,
     indexOfFirst,
     indexOfLast,
-
-    handleRecalculate,
     setData,
   };
 }

@@ -8,7 +8,7 @@ import JobsMatched from "./pages/JobsMatched";
 import Resume from "./pages/Resume";
 import ProtectedRoute from "./components/ProtectedRoute";
 
-import { AuthProvider } from "./hooks/useAuth";
+import { AuthProvider } from "./hooks/AuthContextProvider";
 
 function App() {
   return (
