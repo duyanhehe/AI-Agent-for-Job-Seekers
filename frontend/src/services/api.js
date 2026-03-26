@@ -36,6 +36,37 @@ export async function logout() {
   return res.json();
 }
 
+export async function getMe() {
+  const res = await fetch(`${API}/auth/me`, {
+    credentials: "include",
+  });
+
+  return res.json();
+}
+
+export async function resetPassword(oldPassword, newPassword) {
+  const formData = new FormData();
+  formData.append("old_password", oldPassword);
+  formData.append("new_password", newPassword);
+
+  const res = await fetch(`${API}/auth/reset-password`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+
+  return res.json();
+}
+
+export async function deleteAccount() {
+  const res = await fetch(`${API}/auth/delete-account`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  return res.json();
+}
+
 export async function getJobFunctions() {
   const res = await fetch(`${API}/job-functions`);
   return res.json();

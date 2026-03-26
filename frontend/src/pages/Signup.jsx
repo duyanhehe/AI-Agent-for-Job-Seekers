@@ -8,16 +8,18 @@ import useAuthForm from "../hooks/useAuthForm";
 
 function Signup() {
   const navigate = useNavigate();
-  const { fetchDashboard } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const { fetchDashboard, fetchUser, setIsLoggedIn } = useAuth();
+
   const { loading, error, handleSubmit } = useAuthForm(signup, async () => {
-    // Auto-login after signup
     await login({ email, password });
-    // Fetch dashboard to update context
-    await fetchDashboard();
+
+    await Promise.all([fetchUser(), fetchDashboard()]);
+    setIsLoggedIn(true);
+
     navigate("/analyze");
   });
 

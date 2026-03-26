@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { getDashboard, logout as logoutAPI } from "../services/api";
+import { getDashboard, getMe, logout as logoutAPI } from "../services/api";
 import { AuthContext } from "./AuthContext";
 
 export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(null);
+  const [user, setUser] = useState(null);
+
   const [dashboard, setDashboard] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
 
@@ -12,33 +14,47 @@ export function AuthProvider({ children }) {
       setDashboardLoading(true);
       const data = await getDashboard();
       setDashboard(data);
-      setIsLoggedIn(true);
       return data;
     } catch (err) {
       console.error("Failed to fetch dashboard:", err);
-      setIsLoggedIn(false);
       throw err;
     } finally {
       setDashboardLoading(false);
     }
   };
 
+  // Fetch user
+  const fetchUser = async () => {
+    try {
+      const data = await getMe();
+      setUser(data);
+      return data;
+    } catch (err) {
+      setUser(null);
+      throw err;
+    }
+  };
+
   useEffect(() => {
-    async function checkAuth() {
+    async function initAuth() {
       try {
-        await fetchDashboard();
+        // run both in parallel
+        await Promise.all([fetchUser(), fetchDashboard()]);
         setIsLoggedIn(true);
       } catch {
         setIsLoggedIn(false);
+        setUser(null);
+        setDashboard(null);
       }
     }
 
-    checkAuth();
+    initAuth();
   }, []);
 
   const logout = async () => {
     await logoutAPI();
     setIsLoggedIn(false);
+    setUser(null);
     setDashboard(null);
   };
 
@@ -47,9 +63,15 @@ export function AuthProvider({ children }) {
       value={{
         isLoggedIn,
         setIsLoggedIn,
+
+        user,
+        setUser,
+
         dashboard,
         dashboardLoading,
         fetchDashboard,
+
+        fetchUser,
         logout,
       }}
     >

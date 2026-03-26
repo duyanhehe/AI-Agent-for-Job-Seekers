@@ -84,6 +84,55 @@ def logout(request: Request, response: Response):
     return {"message": "Logged out"}
 
 
+@router.get("/auth/me")
+def get_me(user=Depends(get_current_user)):
+    return {
+        "id": user.id,
+        "email": user.email,
+    }
+
+
+@router.post("/auth/reset-password")
+def reset_password(
+    old_password: str = Form(...),
+    new_password: str = Form(...),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    print("OLD PASSWORD INPUT:", old_password)
+    print("HASH IN DB:", user.password_hash)
+    print(
+        "VERIFY RESULT:", auth_service.verify_password(old_password, user.password_hash)
+    )
+    # Verify old password
+    if not auth_service.verify_password(old_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect old password")
+
+    # Update password
+    user.password_hash = auth_service.hash_password(new_password)
+    db.commit()
+    db.refresh(user)
+
+    return {"message": "Password updated"}
+
+
+@router.delete("/auth/delete-account")
+def delete_account(
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    db.query(JobMatchedHistory).filter_by(user_id=user.id).delete()
+    db.query(ChatHistory).filter_by(user_id=user.id).delete()
+    db.query(JobAction).filter_by(user_id=user.id).delete()
+    db.query(UserProfile).filter_by(user_id=user.id).delete()
+    db.query(CVDocuments).filter_by(user_id=user.id).delete()
+
+    db.delete(user)
+    db.commit()
+
+    return {"message": "Account deleted"}
+
+
 # --------------------------------------------------
 # Helpers form parsers
 # --------------------------------------------------

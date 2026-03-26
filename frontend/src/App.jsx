@@ -8,6 +8,7 @@ import JobsMatched from "./pages/JobsMatched";
 import Resume from "./pages/Resume";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 import { AuthProvider } from "./hooks/AuthContextProvider";
 
@@ -55,6 +56,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="/privacy" element={<PrivacyPolicy />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

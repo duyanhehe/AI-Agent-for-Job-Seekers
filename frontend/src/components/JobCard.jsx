@@ -134,13 +134,27 @@ function JobCard({ job, onSelect, onStatusChange }) {
                   e.stopPropagation();
                   handleAction("liked");
                 }}
-                className={`px-3 py-1 rounded border text-sm ${
+                className={`flex items-center gap-2 px-3 py-1 rounded border text-sm ${
                   status === "liked"
-                    ? "bg-green-500 text-white"
+                    ? "bg-pink-500 text-white"
                     : "bg-white hover:bg-gray-100"
                 }`}
               >
-                ❤️ Like
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z"
+                  />
+                </svg>
+                Like
               </button>
 
               <button
@@ -148,13 +162,27 @@ function JobCard({ job, onSelect, onStatusChange }) {
                   e.stopPropagation();
                   handleAction("applied");
                 }}
-                className={`px-3 py-1 rounded border text-sm ${
+                className={`flex items-center gap-2 px-3 py-1 rounded border text-sm ${
                   status === "applied"
                     ? "bg-blue-500 text-white"
                     : "bg-white hover:bg-gray-100"
                 }`}
               >
-                ✔ Applied
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                  />
+                </svg>
+                Already Applied
               </button>
 
               <button
@@ -162,13 +190,27 @@ function JobCard({ job, onSelect, onStatusChange }) {
                   e.stopPropagation();
                   handleAction("hidden");
                 }}
-                className={`px-3 py-1 rounded border text-sm ${
+                className={`flex items-center gap-2 px-3 py-1 rounded border text-sm ${
                   status === "hidden"
                     ? "bg-gray-400 text-white"
                     : "bg-white hover:bg-gray-100"
                 }`}
               >
-                ❌ Hide
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                  />
+                </svg>
+                Not Interested
               </button>
 
               <button
@@ -176,13 +218,27 @@ function JobCard({ job, onSelect, onStatusChange }) {
                   e.stopPropagation();
                   setShowReport(true);
                 }}
-                className={`px-3 py-1 rounded border text-sm ${
+                className={`flex items-center gap-2 px-3 py-1 rounded border text-sm ${
                   status === "reported"
                     ? "bg-red-500 text-white"
                     : "bg-white hover:bg-gray-100"
                 }`}
               >
-                🚩 Report
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5"
+                  />
+                </svg>
+                Report
               </button>
             </div>
           </div>
@@ -229,7 +285,7 @@ function JobCard({ job, onSelect, onStatusChange }) {
       {/* REPORT MODAL */}
       {showReport && (
         <div
-          className="fixed inset-0 z-50 bg-black bg-opacity-40 flex justify-center items-center"
+          className="fixed inset-0 z-50 bg-black/50 flex justify-center items-center"
           onClick={() => setShowReport(false)}
         >
           <div

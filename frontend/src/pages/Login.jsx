@@ -8,13 +8,16 @@ import useAuthForm from "../hooks/useAuthForm";
 
 function Login() {
   const navigate = useNavigate();
-  const { fetchDashboard } = useAuth();
+  const { fetchDashboard, fetchUser, setIsLoggedIn } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const { loading, error, handleSubmit } = useAuthForm(login, async () => {
     // Fetch dashboard and update isLoggedIn in context
+    await Promise.all([fetchUser(), fetchDashboard()]);
+    setIsLoggedIn(true);
+
     const dashboard = await fetchDashboard();
 
     // Now isLoggedIn is true in context, safe to navigate
