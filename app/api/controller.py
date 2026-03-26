@@ -36,6 +36,7 @@ from app.core.dependencies import (
 from app.models.cv_documents import CVDocuments
 from app.models.job_matched_history import JobMatchedHistory
 from app.models.chat_history import ChatHistory
+from app.models.job_actions import JobAction
 
 
 router = APIRouter()
@@ -442,6 +443,48 @@ async def ask_job_question(
 
 
 # --------------------------------------------------
+# Job actions (like, apply, hide, report)
+# --------------------------------------------------
+@router.post("/job/action")
+def save_job_action(
+    job_id: int = Form(...),
+    status: str = Form(...),
+    reason: str = Form(None),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # UPSERT DB
+    action = (
+        db.query(JobAction)
+        .filter(JobAction.user_id == user.id, JobAction.job_id == job_id)
+        .first()
+    )
+
+    if action:
+        action.status = status
+        action.reason = reason
+    else:
+        action = JobAction(
+            user_id=user.id,
+            job_id=job_id,
+            status=status,
+            reason=reason,
+        )
+        db.add(action)
+
+    db.commit()
+
+    # CACHE (Redis)
+    cache_key = f"job_actions:{user.id}"
+    actions = cache_get(cache_key) or {}
+
+    actions[str(job_id)] = {"status": status, "reason": reason}
+    cache_set(cache_key, actions)
+
+    return {"message": "saved"}
+
+
+# --------------------------------------------------
 # Get user history
 # --------------------------------------------------
 @router.get("/user/dashboard")
@@ -463,10 +506,35 @@ def get_dashboard(
         .all()
     )
 
-    job_history = []
+    # LOAD JOB ACTIONS
+    cache_key = f"job_actions:{user.id}"
+    actions = cache_get(cache_key)
 
+    if not actions:
+        db_actions = db.query(JobAction).filter(JobAction.user_id == user.id).all()
+
+        actions = {
+            str(a.job_id): {"status": a.status, "reason": a.reason} for a in db_actions
+        }
+
+        cache_set(cache_key, actions)
+
+    # JOB HISTORY
+    job_history = []
     for h in histories:
         cv = db.query(CVDocuments).filter(CVDocuments.id == h.cv_id).first()
+
+        jobs_with_status = []
+
+        for job in h.jobs or []:
+            job_id = str(job.get("job_id"))
+
+            action = actions.get(job_id, {})
+
+            job["status"] = action.get("status")  # liked/applied/hidden/reported
+            job["reason"] = action.get("reason")
+
+            jobs_with_status.append(job)
 
         job_history.append(
             {
@@ -477,7 +545,7 @@ def get_dashboard(
                 "job_function": h.job_function,
                 "job_type": h.job_type,
                 "location": h.location,
-                "jobs": h.jobs,
+                "jobs": jobs_with_status,
             }
         )
 

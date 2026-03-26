@@ -1,9 +1,10 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 
 function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoggedIn, logout } = useAuth();
 
   const [loading, setLoading] = useState(false);
@@ -39,6 +40,53 @@ function Navbar() {
             AI Job Seeker
           </Link>
         </div>
+        {location?.pathname?.startsWith("/jobs") && (
+          <div className="flex items-center gap-4 ml-6">
+            <Link
+              to="/jobs?tab=recommended"
+              className={`px-4 py-1 rounded-full text-sm font-medium ${
+                location.search.includes("recommended")
+                  ? "bg-black text-white"
+                  : "bg-gray-100"
+              }`}
+            >
+              Recommended
+            </Link>
+
+            <Link
+              to="/jobs?tab=liked"
+              className={`px-4 py-1 rounded-full text-sm ${
+                location.search.includes("liked")
+                  ? "bg-black text-white"
+                  : "bg-gray-100"
+              }`}
+            >
+              Liked
+            </Link>
+
+            <Link
+              to="/jobs?tab=applied"
+              className={`px-4 py-1 rounded-full text-sm ${
+                location.search.includes("applied")
+                  ? "bg-black text-white"
+                  : "bg-gray-100"
+              }`}
+            >
+              Applied
+            </Link>
+
+            <Link
+              to="/jobs?tab=external"
+              className={`px-4 py-1 rounded-full text-sm ${
+                location.search.includes("external")
+                  ? "bg-black text-white"
+                  : "bg-gray-100"
+              }`}
+            >
+              External
+            </Link>
+          </div>
+        )}
 
         {/* RIGHT */}
         {isLoggedIn && (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   getJobFunctions,
   getCountries,
@@ -23,13 +23,20 @@ export default function useJobsMatched(location, navigate) {
   const [loadingRecalc, setLoadingRecalc] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
+  // FILTER OUT HIDDEN JOBS - wrapped in useMemo to prevent re-creation
+  const visibleJobs = useMemo(
+    () => data?.jobs?.filter((job) => job.status !== "hidden") || [],
+    [data?.jobs],
+  );
+
   const jobsPerPage = 10;
+
   const {
     page: currentPage,
     setPage: setCurrentPage,
     totalPages,
     currentItems: currentJobs,
-  } = usePagination(data?.jobs || [], jobsPerPage);
+  } = usePagination(visibleJobs, jobsPerPage);
 
   // Calculate indices for pagination display
   const indexOfFirst = (currentPage - 1) * jobsPerPage;
@@ -72,7 +79,7 @@ export default function useJobsMatched(location, navigate) {
           jobs: selected.jobs,
         });
 
-        return; // STOP everything else
+        return;
       }
 
       // FALLBACK (normal load)
@@ -95,7 +102,7 @@ export default function useJobsMatched(location, navigate) {
     }
   }, [dashboard, dashboardLoading, location.state?.selectedCV, navigate]);
 
-  // Load dropdowns
+  // LOAD DROPDOWNS
   useEffect(() => {
     async function loadDropdowns() {
       try {
@@ -114,10 +121,10 @@ export default function useJobsMatched(location, navigate) {
 
   // AUTO SELECT JOB
   useEffect(() => {
-    if (data?.jobs?.length > 0) {
-      setSelectedJob(data.jobs[0]);
+    if (visibleJobs.length > 0) {
+      setSelectedJob(visibleJobs[0]);
     }
-  }, [data?.jobs]);
+  }, [visibleJobs]);
 
   const handleRecalculate = async (formData) => {
     setLoadingRecalc(true);

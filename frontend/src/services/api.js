@@ -128,3 +128,13 @@ export async function getDashboard() {
 
   return res.json();
 }
+
+export async function saveJobAction(formData) {
+  const res = await fetch(`${API}/job/action`, {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+
+  return res.json();
+}

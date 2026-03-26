@@ -40,6 +40,16 @@ function JobsMatched() {
 
   if (!data) return <p className="p-6">Loading...</p>;
 
+  const tab = new URLSearchParams(location.search).get("tab") || "recommended";
+
+  // FILTER BY TAB
+  const filteredJobs = currentJobs.filter((job) => {
+    if (tab === "liked") return job.status === "liked";
+    if (tab === "applied") return job.status === "applied";
+    if (tab === "external") return job.status === "external"; // future
+    return true;
+  });
+
   return (
     <Layout>
       <div className="flex h-full bg-gray-100 overflow-hidden">
@@ -178,14 +188,24 @@ function JobsMatched() {
           {data.warning && <p className="text-orange-600">{data.warning}</p>}
 
           {/* JOB LIST */}
-          {!loadingRecalc &&
-            currentJobs.map((job) => (
-              <JobCard
-                key={job.job_id}
-                job={job}
-                onSelect={() => setSelectedJob(job)}
-              />
-            ))}
+          <div className="flex flex-col gap-4">
+            {!loadingRecalc &&
+              filteredJobs.map((job) => (
+                <JobCard
+                  key={job.job_id}
+                  job={job}
+                  onSelect={() => setSelectedJob(job)}
+                  onStatusChange={(jobId, newStatus) => {
+                    setData((prev) => ({
+                      ...prev,
+                      jobs: prev.jobs.map((j) =>
+                        j.job_id === jobId ? { ...j, status: newStatus } : j,
+                      ),
+                    }));
+                  }}
+                />
+              ))}
+          </div>
 
           {/* PAGINATION */}
           {!loadingRecalc && totalPages > 1 && (
