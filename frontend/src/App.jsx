@@ -6,6 +6,7 @@ import Signup from "./pages/Signup";
 import CvAnalyzer from "./pages/CvAnalyzer";
 import JobsMatched from "./pages/JobsMatched";
 import Resume from "./pages/Resume";
+import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import { AuthProvider } from "./hooks/AuthContextProvider";
@@ -42,6 +43,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Resume />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             }
           />

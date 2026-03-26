@@ -4,7 +4,6 @@ from app.services.index_manager import IndexManager
 from app.services.auth_service import AuthService
 from app.services.document_reader import DocumentReader
 from app.services.llm_service import LLMService
-from app.services.skill_extractor import SkillExtractor
 from app.core.database import SessionLocal
 from app.models.user import User
 
@@ -52,7 +51,3 @@ def get_reader():
 
 def get_llm_service():
     return LLMService()
-
-
-def get_skill_extractor():
-    return SkillExtractor()

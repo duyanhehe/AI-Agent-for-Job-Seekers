@@ -49,8 +49,58 @@ Return JSON:
 
         return await self._call_llm(prompt)
 
-    async def answer_job_question(self, cv, job, question):
+    async def extract_profile(self, cv_text, basic_info=None):
+        prompt = f"""
+Extract structured user profile from this CV.
 
+STRICT RULES:
+- Do not guess missing information
+- Only extract if explicitly present in the CV
+- If not found, return empty string "" or empty list []
+- Do NOT infer or assume anything
+
+You are allowed to use these pre-extracted hints:
+{basic_info}
+
+For "skills":
+- Only include technical skills (programming, tools, frameworks, databases)
+- Exclude soft skills
+- Return lowercase
+- Remove duplicates
+
+Return JSON:
+
+{{
+"name": "",
+"email": "",
+"phone": "",
+"location": "",
+"education": [
+{{
+    "school": "",
+    "degree": "",
+    "year": ""
+}}
+],
+"work_experience": [
+{{
+    "company": "",
+    "role": "",
+    "duration": "",
+    "description": ""
+}}
+],
+"skills": [],
+"projects": [],
+"activities": []
+}}
+
+CV:
+{cv_text}
+"""
+        return await self._call_llm(prompt)
+
+    async def answer_job_question(self, cv, job, question):
         prompt = f"""
 {SYSTEM_RULES}
 You MUST return valid JSON only.

@@ -21,6 +21,7 @@ from app.schemas.job_recalculate import JobRecalculateRequest
 from app.schemas.job_question import JobQuestionRequest
 
 from app.utils.file_utils import validate_file
+from app.utils.cv_parsers import extract_basic_info
 
 from app.config import UPLOAD_DIR
 from app.core.dependencies import (
@@ -30,13 +31,13 @@ from app.core.dependencies import (
     get_current_user,
     get_reader,
     get_llm_service,
-    get_skill_extractor,
 )
 
 from app.models.cv_documents import CVDocuments
 from app.models.job_matched_history import JobMatchedHistory
 from app.models.chat_history import ChatHistory
 from app.models.job_actions import JobAction
+from app.models.user_profiles import UserProfile
 
 
 router = APIRouter()
@@ -128,7 +129,7 @@ async def upload_cv(
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
     reader=Depends(get_reader),
-    skill_extractor=Depends(get_skill_extractor),
+    llm_service=Depends(get_llm_service),
 ):
     # Validate file
     validate_file(file)
@@ -177,16 +178,29 @@ async def upload_cv(
             db.commit()
     print("Reusing existing CV (filename updated)")
 
-    # CACHE SKILLS (REDIS)
-    skill_cache_key = f"skills:{user.id}:{hash(text)}"
-    skills = cache_get(skill_cache_key)
+    # EXTRACT PROFILE & SAVE (with caching)
+    basic_info = extract_basic_info(text)
+    profile_cache_key = f"profile:{user.id}:{hash(text)}"
+    profile = cache_get(profile_cache_key)
 
-    if not skills:
-        skills = await skill_extractor.extract_skills(text)
-        cache_set(skill_cache_key, skills)
-        print("Extracted & cached skills")
+    if not profile:
+        profile = await llm_service.extract_profile(text, basic_info)
+        skills = profile.get("skills", []) or []
+        cache_set(profile_cache_key, profile)
+
+    existing_profile = (
+        db.query(UserProfile)
+        .filter(UserProfile.user_id == user.id, UserProfile.cv_id == cv.id)
+        .first()
+    )
+
+    if existing_profile:
+        existing_profile.profile = profile
     else:
-        print("Loaded skills from cache")
+        db_profile = UserProfile(user_id=user.id, cv_id=cv.id, profile=profile)
+        db.add(db_profile)
+
+    db.commit()
 
     # CACHE JOB RESULTS
     cache_key = f"jobs:{user.id}:{cv.id}:{job_preference.job_function}:{job_preference.job_type}:{job_preference.location}"
@@ -238,6 +252,7 @@ async def upload_cv(
         "cv_id": cv.id,
         "file_name": cv.file_name,
         "cv_text": text,
+        "profile": profile,
         "skills": skills,
         "warning": result["warning"],
         "jobs": result["jobs"],
@@ -332,21 +347,19 @@ async def recalculate_jobs(
     data: JobRecalculateRequest,
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
-    skill_extractor=Depends(get_skill_extractor),
+    llm_service=Depends(get_llm_service),
 ):
     text = data.cv_text
 
     # CACHE SKILLS (REDIS)
-    skill_cache_key = f"skills:{user.id}:{hash(text)}"
-    cached_skills = cache_get(skill_cache_key)
+    profile_cache_key = f"profile:{user.id}:{hash(text)}"
+    profile = cache_get(profile_cache_key)
 
-    if cached_skills:
-        skills = cached_skills
-        print("Loaded skills from cache")
-    else:
-        skills = await skill_extractor.extract_skills(text)
-        cache_set(skill_cache_key, skills)
-        print("Extracted & cached skills")
+    if not profile:
+        profile = await llm_service.extract_profile(text)
+        cache_set(profile_cache_key, profile)
+
+    skills = profile.get("skills", []) or []
 
     # MATCH JOBS
     result = index_manager.matchJobs(
@@ -536,6 +549,12 @@ def get_dashboard(
 
             jobs_with_status.append(job)
 
+        profile = (
+            db.query(UserProfile)
+            .filter(UserProfile.user_id == user.id, UserProfile.cv_id == h.cv_id)
+            .first()
+        )
+
         job_history.append(
             {
                 "cv_id": h.cv_id,
@@ -545,6 +564,7 @@ def get_dashboard(
                 "job_function": h.job_function,
                 "job_type": h.job_type,
                 "location": h.location,
+                "profile": profile.profile if profile else {},
                 "jobs": jobs_with_status,
             }
         )

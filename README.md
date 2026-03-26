@@ -151,7 +151,7 @@ Once a job is selected:
 
 1. User uploads CV + selects preferences
 2. `DocumentReader` extracts CV text
-3. `SkillExtractor` uses LLM to identify technical skills
+3. `LLMService` uses LLM to identify technical skills
 4. CV skills + text → vector search query
 5. `IndexManager` retrieves similar jobs from ChromaDB
 6. Jobs ranked by skill overlap + filters

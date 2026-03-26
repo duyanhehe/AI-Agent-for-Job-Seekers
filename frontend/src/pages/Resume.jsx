@@ -38,7 +38,7 @@ function Resume() {
           {cvList.map((cv, index) => (
             <div
               key={cv.cv_id}
-              className="flex justify-between items-center bg-white p-4 rounded border hover:shadow"
+              className="flex justify-between items-center bg-white p-4 rounded shadow"
             >
               <div>
                 <p className="font-medium flex items-center gap-2">

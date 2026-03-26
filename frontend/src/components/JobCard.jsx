@@ -85,7 +85,7 @@ function JobCard({ job, onSelect, onStatusChange }) {
     <>
       <div
         onClick={onSelect}
-        className="border rounded-lg p-5 bg-white shadow hover:bg-gray-50 cursor-pointer"
+        className="rounded-lg p-5 bg-white shadow hover:bg-gray-50 cursor-pointer"
       >
         {/* TOP LAYOUT */}
         <div className="flex">
