@@ -169,3 +169,21 @@ export async function saveJobAction(formData) {
 
   return res.json();
 }
+
+export async function saveExternalJob(formData) {
+  const res = await fetch(`${API}/external-job`, {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+
+  return res.json();
+}
+
+export async function getExternalJobs() {
+  const res = await fetch(`${API}/external-job`, {
+    credentials: "include",
+  });
+
+  return res.json();
+}

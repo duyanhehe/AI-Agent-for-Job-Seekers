@@ -125,6 +125,56 @@ Return EXACTLY this format:
 
         return await self._call_llm(prompt)
 
+    async def extract_external_job(self, description: str):
+        prompt = f"""
+Extract structured job information from this job description.
+
+STRICT RULES:
+- Do NOT guess missing information
+- Only extract if explicitly mentioned
+- If not found → return "" or [] or false
+- Skills must be technical only (programming, tools, frameworks, databases)
+- Return skills in lowercase
+- Remove duplicates
+
+Fields to extract:
+
+- job_role (exact role mentioned, e.g. frontend developer)
+- job_type (full-time, part-time, contract, internship)
+- salary (as written, do not normalize)
+- work_from_home (true if remote/hybrid mentioned, else false)
+
+For skills:
+- Extract flat "skills" list
+- Also group into "type_skills":
+    - programming_languages
+    - frameworks
+    - tools
+    - databases
+    - others
+
+Return JSON:
+
+{{
+"job_role": "",
+"job_type": "",
+"salary": "",
+"work_from_home": false,
+"skills": [],
+"type_skills": {{
+    "programming_languages": [],
+    "frameworks": [],
+    "tools": [],
+    "databases": [],
+    "others": []
+}}
+}}
+
+Job Description:
+{description}
+"""
+        return await self._call_llm(prompt)
+
     async def _call_llm(self, prompt):
         payload = {
             "model": "llama3.2:3b",

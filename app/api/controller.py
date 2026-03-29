@@ -19,6 +19,7 @@ from app.schemas.job_preference import JobPreference
 from app.schemas.job_analysis import JobAnalysisRequest
 from app.schemas.job_recalculate import JobRecalculateRequest
 from app.schemas.job_question import JobQuestionRequest
+from app.schemas.external_job import ExternalJobCreate, ExternalJobResponse
 
 from app.utils.file_utils import validate_file
 from app.utils.cv_parsers import extract_basic_info
@@ -38,6 +39,7 @@ from app.models.job_matched_history import JobMatchedHistory
 from app.models.chat_history import ChatHistory
 from app.models.job_actions import JobAction
 from app.models.user_profiles import UserProfile
+from app.models.external_jobs import ExternalJob
 
 
 router = APIRouter()
@@ -629,3 +631,91 @@ def get_dashboard(
             for c in chats
         ],
     }
+
+
+# --------------------------------------------------
+# Save external job
+# --------------------------------------------------
+
+
+@router.post("/external-job", response_model=ExternalJobResponse)
+async def save_external_job(
+    title: str = Form(...),
+    url: str = Form(...),
+    company: str = Form(...),
+    location: str = Form(...),
+    description: str = Form(...),
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    llm_service=Depends(get_llm_service),
+):
+    # Wrap into schema
+    data = ExternalJobCreate(
+        title=title,
+        url=url,
+        company=company,
+        location=location,
+        description=description,
+    )
+
+    # LLM extraction (description)
+    extracted = await llm_service.extract_external_job(data.description)
+
+    external_job = ExternalJob(
+        user_id=user.id,
+        # USER INPUT
+        title=data.title,
+        company=data.company,
+        location=data.location,
+        url=data.url,
+        description=data.description,
+        # LLM OUTPUT
+        job_type=extracted.get("job_type"),
+        salary=extracted.get("salary"),
+        work_from_home=extracted.get("work_from_home", False),
+        skills=extracted.get("skills", []),
+        type_skills=extracted.get("type_skills", {}),
+        job_function=extracted.get("job_function"),
+    )
+
+    db.add(external_job)
+    db.commit()
+    db.refresh(external_job)
+
+    return {
+        "id": external_job.id,
+        "job_role": external_job.title,
+        "company": external_job.company,
+        "location": external_job.location,
+        "url": external_job.url,
+        "job_type": external_job.job_type,
+        "salary": external_job.salary,
+        "work_from_home": external_job.work_from_home,
+        "skills": external_job.skills,
+        "type_skills": external_job.type_skills,
+        "is_external": True,
+    }
+
+
+@router.get("/external-job")
+async def get_external_jobs(
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    jobs = db.query(ExternalJob).filter(ExternalJob.user_id == user.id).all()
+
+    return [
+        {
+            "id": j.id,
+            "job_role": j.title,
+            "company": j.company,
+            "location": j.location,
+            "url": j.url,
+            "job_type": j.job_type,
+            "salary": j.salary,
+            "skills": j.skills,
+            "type_skills": j.type_skills,
+            "is_external": True,
+        }
+        for j in jobs
+    ]

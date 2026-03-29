@@ -1,9 +1,13 @@
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import JobCard from "../components/JobCard";
 import AIAgentPanel from "../components/AIAgentPanel";
 import Spinner from "../components/Spinner";
 import useJobsMatched from "../hooks/useJobsMatched";
+import ExternalJobCard from "../components/ExternalJobCard";
+import ExternalJobDrawer from "../components/ExternalJobDrawer";
+import { getExternalJobs } from "../services/api";
 
 function JobsMatched() {
   const location = useLocation();
@@ -37,10 +41,38 @@ function JobsMatched() {
     handleRecalculate,
     setData,
   } = useJobsMatched(location, navigate);
+  const [externalJobs, setExternalJobs] = useState([]);
+  const [showDrawer, setShowDrawer] = useState(false);
+  const tab = new URLSearchParams(location.search).get("tab") || "recommended";
+
+  useEffect(() => {
+    async function loadExternal() {
+      try {
+        const jobs = await getExternalJobs();
+
+        const formatted = jobs.map((j) => ({
+          job_id: j.id,
+          job_role: j.job_role,
+          company: j.company,
+          location: j.location,
+          url: j.url,
+          job_type: j.job_type,
+          salary: j.salary,
+          skills: j.skills,
+          type_skills: j.type_skills,
+          status: "external",
+        }));
+
+        setExternalJobs(formatted);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadExternal();
+  }, []);
 
   if (!data) return <p className="p-6">Loading...</p>;
-
-  const tab = new URLSearchParams(location.search).get("tab") || "recommended";
 
   // FILTER BY TAB
   const filteredJobs = currentJobs.filter((job) => {
@@ -49,6 +81,25 @@ function JobsMatched() {
     if (tab === "external") return job.status === "external"; // future
     return true;
   });
+
+  const handleAddExternalJob = async () => {
+    const jobs = await getExternalJobs();
+
+    const formatted = jobs.map((j) => ({
+      job_id: j.id,
+      job_role: j.job_role,
+      company: j.company,
+      location: j.location,
+      url: j.url,
+      job_type: j.job_type,
+      salary: j.salary,
+      skills: j.skills,
+      type_skills: j.type_skills,
+      status: "external",
+    }));
+
+    setExternalJobs(formatted);
+  };
 
   return (
     <Layout>
@@ -187,25 +238,65 @@ function JobsMatched() {
           {loadingRecalc && <Spinner />}
           {data.warning && <p className="text-orange-600">{data.warning}</p>}
 
-          {/* JOB LIST */}
-          <div className="flex flex-col gap-4">
-            {!loadingRecalc &&
-              filteredJobs.map((job) => (
-                <JobCard
-                  key={job.job_id}
-                  job={job}
-                  onSelect={() => setSelectedJob(job)}
-                  onStatusChange={(jobId, newStatus) => {
-                    setData((prev) => ({
-                      ...prev,
-                      jobs: prev.jobs.map((j) =>
-                        j.job_id === jobId ? { ...j, status: newStatus } : j,
-                      ),
-                    }));
-                  }}
-                />
-              ))}
-          </div>
+          {/* EXTERNAL TAB */}
+          {tab === "external" ? (
+            <>
+              {externalJobs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+                  <div className="bg-white p-10 rounded-2xl shadow w-[400px]">
+                    <div className="text-3xl mb-4">+</div>
+                    <p className="text-gray-600 mb-4">
+                      Import job postings to customize your resume and get
+                      insights.
+                    </p>
+                    <button
+                      onClick={() => setShowDrawer(true)}
+                      className="bg-black text-white px-6 py-2 rounded-full"
+                    >
+                      Add a New Job
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-end mb-4">
+                    <button
+                      onClick={() => setShowDrawer(true)}
+                      className="bg-black text-white px-4 py-2 rounded-full"
+                    >
+                      + Add a New Job
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    {externalJobs.map((job) => (
+                      <ExternalJobCard key={job.job_id} job={job} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            /*  JOB LIST */
+            <div className="flex flex-col gap-4">
+              {!loadingRecalc &&
+                filteredJobs.map((job) => (
+                  <JobCard
+                    key={job.job_id}
+                    job={job}
+                    onSelect={() => setSelectedJob(job)}
+                    onStatusChange={(jobId, newStatus) => {
+                      setData((prev) => ({
+                        ...prev,
+                        jobs: prev.jobs.map((j) =>
+                          j.job_id === jobId ? { ...j, status: newStatus } : j,
+                        ),
+                      }));
+                    }}
+                  />
+                ))}
+            </div>
+          )}
 
           {/* PAGINATION */}
           {!loadingRecalc && totalPages > 1 && (
@@ -256,14 +347,22 @@ function JobsMatched() {
         </div>
 
         {/* RIGHT */}
-        <div className="w-1/3 border-l bg-white h-full">
-          <AIAgentPanel
-            job={selectedJob}
-            cvText={data.cv_text}
-            chatHistory={chatHistory}
-          />
-        </div>
+        {tab !== "external" && (
+          <div className="w-1/3 border-l bg-white h-full">
+            <AIAgentPanel
+              job={selectedJob}
+              cvText={data.cv_text}
+              chatHistory={chatHistory}
+            />
+          </div>
+        )}
       </div>
+
+      <ExternalJobDrawer
+        open={showDrawer}
+        onClose={() => setShowDrawer(false)}
+        onSave={handleAddExternalJob}
+      />
     </Layout>
   );
 }
