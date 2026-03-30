@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { useDashboard } from "../hooks/useAuth";
-import { updateProfile } from "../services/api";
+import { updateProfile, downloadProfile } from "../services/api";
+import Section from "../components/profile/Section";
+import Timeline from "../components/profile/Timeline";
+import Input from "../components/profile/Input";
+import ListEditor from "../components/profile/ListEditor";
 
 function Profile() {
   const { dashboard, dashboardLoading, refreshDashboard } = useDashboard();
@@ -61,6 +65,24 @@ function Profile() {
 
   return (
     <Layout>
+      <div className="max-w-5xl mx-auto px-6 pt-6 flex justify-end">
+        <button
+          onClick={downloadProfile}
+          className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg shadow hover:bg-gray-800 transition active:scale-95"
+        >
+          {/* DOWNLOAD ICON */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="w-5 h-5"
+          >
+            <path d="M12 16.5a.75.75 0 0 1-.53-.22l-4.5-4.5a.75.75 0 1 1 1.06-1.06L11.25 13.94V3.75a.75.75 0 0 1 1.5 0v10.19l3.22-3.22a.75.75 0 1 1 1.06 1.06l-4.5 4.5a.75.75 0 0 1-.53.22Z" />
+            <path d="M3.75 15a.75.75 0 0 1 .75.75v2.25A2.25 2.25 0 0 0 6.75 20.25h10.5A2.25 2.25 0 0 0 19.5 18v-2.25a.75.75 0 0 1 1.5 0v2.25A3.75 3.75 0 0 1 17.25 21.75H6.75A3.75 3.75 0 0 1 3 18v-2.25A.75.75 0 0 1 3.75 15Z" />
+          </svg>
+          Export Profile
+        </button>
+      </div>
       <div className="p-6 space-y-8 max-w-5xl mx-auto">
         {/* HEADER */}
         <div className="bg-white p-6 rounded-xl shadow relative">
@@ -242,118 +264,3 @@ function Profile() {
 }
 
 export default Profile;
-
-/* ---------- COMPONENTS ---------- */
-
-function Section({ title, children, onEdit }) {
-  return (
-    <div className="bg-white p-6 rounded-xl shadow relative">
-      <button
-        onClick={onEdit}
-        className="absolute top-4 right-4 text-gray-500 hover:text-black"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          className="w-4 h-4 inline-block mr-1 align-middle"
-        >
-          <path d="M21.731 2.269a2.625 2.625 0 0 0-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 0 0 0-3.712ZM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 0 0-1.32 2.214l-.8 2.685a.75.75 0 0 0 .933.933l2.685-.8a5.25 5.25 0 0 0 2.214-1.32L19.513 8.2Z" />
-        </svg>
-      </button>
-
-      <h2 className="text-lg font-semibold mb-4">{title}</h2>
-      {children}
-    </div>
-  );
-}
-
-function Timeline({ items = [], type }) {
-  return (
-    <div className="relative border-l border-gray-300 pl-8 space-y-6">
-      {items?.map((item, i) => (
-        <div key={i} className="relative flex items-start gap-3">
-          {/* DOT */}
-          <div className="absolute -left-[11px] top-2 w-4 h-4 bg-white border-2 border-gray-400 rounded-full z-10" />
-
-          {/* CONTENT */}
-          <div className="flex-1">
-            {type === "education" ? (
-              <>
-                <p className="text-sm text-gray-400">{item.year}</p>
-                <p className="font-semibold">{item.school}</p>
-                <p className="text-gray-600">{item.degree}</p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-gray-400">{item.duration}</p>
-                <p className="font-semibold">
-                  {item.role} @ {item.company}
-                </p>
-                <p className="text-gray-600">{item.description}</p>
-              </>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Input({ label, value, onChange }) {
-  return (
-    <div>
-      <p className="text-sm text-gray-500 mb-1">{label}</p>
-      <input
-        className="w-full border p-2 rounded"
-        value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </div>
-  );
-}
-
-function ListEditor({ items = [], setItems, fields }) {
-  const updateItem = (i, key, value) => {
-    const newItems = [...items];
-    newItems[i][key] = value;
-    setItems(newItems);
-  };
-
-  const addItem = () => {
-    const empty = {};
-    fields.forEach((f) => (empty[f] = ""));
-    setItems([...items, empty]);
-  };
-
-  const removeItem = (i) => {
-    setItems(items.filter((_, idx) => idx !== i));
-  };
-
-  return (
-    <div className="space-y-4">
-      {items?.map((item, i) => (
-        <div key={i} className="border p-3 rounded space-y-2">
-          {fields.map((f) => (
-            <Input
-              key={f}
-              label={f}
-              value={item[f]}
-              onChange={(v) => updateItem(i, f, v)}
-            />
-          ))}
-          <button
-            onClick={() => removeItem(i)}
-            className="text-red-500 text-sm"
-          >
-            Remove
-          </button>
-        </div>
-      ))}
-
-      <button onClick={addItem} className="px-3 py-1 border rounded">
-        Add
-      </button>
-    </div>
-  );
-}

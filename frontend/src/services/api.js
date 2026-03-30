@@ -198,3 +198,25 @@ export async function updateProfile(profile) {
 
   return res.json();
 }
+
+export const downloadProfile = async () => {
+  const res = await fetch(`${API}/profile/export/docx`, {
+    method: "GET",
+    credentials: "include",
+  });
+
+  if (!res.ok) throw new Error("Download failed");
+
+  const blob = await res.blob();
+
+  const url = window.URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "resume.docx";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  window.URL.revokeObjectURL(url);
+};

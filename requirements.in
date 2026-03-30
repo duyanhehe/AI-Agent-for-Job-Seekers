@@ -17,6 +17,7 @@ llama-index
 llama-index-vector-stores-chroma
 llama-index-embeddings-huggingface
 # For document processing
+python-docx
 sentence-transformers
 pypdf
 # Vector store

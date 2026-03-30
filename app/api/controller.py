@@ -13,6 +13,7 @@ from uuid import uuid4
 
 from app.services.country_service import get_countries
 from app.services.cache_service import cache_get, cache_set
+from app.services.profile_export_service import export_profile_docx_service
 
 from app.schemas.auth import SignupRequest, LoginRequest
 from app.schemas.job_preference import JobPreference
@@ -765,3 +766,12 @@ def update_profile(
     db.commit()
     db.refresh(existing)
     return {"message": "Profile updated", "profile": existing.profile}
+
+
+# Export CV Documents
+@router.get("/profile/export/docx")
+def export_profile_docx(
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return export_profile_docx_service(user.id, db)

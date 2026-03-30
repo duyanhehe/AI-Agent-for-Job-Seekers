@@ -235,6 +235,8 @@ llama-index-workflows==2.15.1
     # via llama-index-core
 llama-parse==0.6.54
     # via llama-index-readers-llama-parse
+lxml==6.0.2
+    # via python-docx
 markdown-it-py==4.0.0
     # via rich
 markupsafe==3.0.3
@@ -379,6 +381,8 @@ python-dateutil==2.9.0.post0
     # via
     #   kubernetes
     #   pandas
+python-docx==1.2.0
+    # via -r requirements.in
 python-dotenv==1.2.2
     # via
     #   llama-cloud-services
@@ -511,6 +515,7 @@ typing-extensions==4.15.0
     #   opentelemetry-semantic-conventions
     #   pydantic
     #   pydantic-core
+    #   python-docx
     #   referencing
     #   sentence-transformers
     #   sqlalchemy
