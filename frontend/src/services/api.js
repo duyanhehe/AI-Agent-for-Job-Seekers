@@ -187,3 +187,14 @@ export async function getExternalJobs() {
 
   return res.json();
 }
+
+export async function updateProfile(profile) {
+  const res = await fetch(`${API}/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(profile),
+  });
+
+  return res.json();
+}

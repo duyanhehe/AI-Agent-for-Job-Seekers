@@ -719,3 +719,49 @@ async def get_external_jobs(
         }
         for j in jobs
     ]
+
+
+# --------------------------------------------------
+# UPDATE USER PROFILE
+# --------------------------------------------------
+@router.put("/profile")
+def update_profile(
+    profile: dict,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    # get PRIMARY CV
+    cv = (
+        db.query(CVDocuments)
+        .filter(
+            CVDocuments.user_id == user.id,
+            CVDocuments.is_primary.is_(True),
+        )
+        .first()
+    )
+
+    if not cv:
+        raise HTTPException(status_code=404, detail="Primary CV not found")
+
+    existing = (
+        db.query(UserProfile)
+        .filter(
+            UserProfile.user_id == user.id,
+            UserProfile.cv_id == cv.id,
+        )
+        .first()
+    )
+
+    if not existing:
+        existing = UserProfile(
+            user_id=user.id,
+            cv_id=cv.id,
+            profile=profile,
+        )
+        db.add(existing)
+    else:
+        existing.profile = profile
+
+    db.commit()
+    db.refresh(existing)
+    return {"message": "Profile updated", "profile": existing.profile}
