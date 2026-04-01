@@ -12,7 +12,11 @@ from sqlalchemy.orm import Session
 from uuid import uuid4
 
 from app.services.country_service import get_countries
-from app.services.cache_service import cache_get, cache_set
+from app.services.cache_service import (
+    cache_get,
+    cache_set,
+    cache_delete_pattern,
+)
 from app.services.profile_export_service import export_profile_docx_service
 
 from app.schemas.auth import SignupRequest, LoginRequest
@@ -24,6 +28,7 @@ from app.schemas.external_job import ExternalJobCreate, ExternalJobResponse
 
 from app.utils.file_utils import validate_file
 from app.utils.cv_parsers import extract_basic_info
+from app.utils.cache_hash import make_hash, normalize
 
 from app.config import UPLOAD_DIR
 from app.core.dependencies import (
@@ -232,14 +237,14 @@ async def upload_cv(
 
     # EXTRACT PROFILE & SAVE (with caching)
     basic_info = extract_basic_info(text)
-    profile_cache_key = f"profile:{user.id}:{hash(text)}"
+    profile_cache_key = f"profile:{user.id}:{make_hash(text)}"
     profile = cache_get(profile_cache_key)
 
     if not profile:
         profile = await llm_service.extract_profile(text, basic_info)
-        skills = profile.get("skills", []) or []
-        cache_set(profile_cache_key, profile)
+        cache_set(profile_cache_key, profile, ttl=3600)
 
+    skills = profile.get("skills", []) or []
     existing_profile = (
         db.query(UserProfile)
         .filter(UserProfile.user_id == user.id, UserProfile.cv_id == cv.id)
@@ -255,7 +260,7 @@ async def upload_cv(
     db.commit()
 
     # CACHE JOB RESULTS
-    cache_key = f"jobs:{user.id}:{cv.id}:{job_preference.job_function}:{job_preference.job_type}:{job_preference.location}"
+    cache_key = f"jobs:{user.id}:{cv.id}:{normalize(job_preference.job_function)}:{normalize(job_preference.job_type)}:{normalize(job_preference.location)}"
     cached = cache_get(cache_key)
 
     if cached:
@@ -310,7 +315,7 @@ async def upload_cv(
         "jobs": result["jobs"],
     }
 
-    cache_set(cache_key, response)
+    cache_set(cache_key, response, ttl=3600)
 
     return response
 
@@ -339,6 +344,10 @@ def delete_cv(
 
     db.delete(cv)
     db.commit()
+
+    # cache invalidation
+    cache_delete_pattern(f"jobs:{user.id}:{cv_id}:*")
+    cache_delete_pattern(f"profile:{user.id}:*")
 
     return {"message": "CV deleted"}
 
@@ -404,12 +413,12 @@ async def recalculate_jobs(
     text = data.cv_text
 
     # CACHE SKILLS (REDIS)
-    profile_cache_key = f"profile:{user.id}:{hash(text)}"
+    profile_cache_key = f"profile:{user.id}:{make_hash(text)}"
     profile = cache_get(profile_cache_key)
 
     if not profile:
         profile = await llm_service.extract_profile(text)
-        cache_set(profile_cache_key, profile)
+        cache_set(profile_cache_key, profile, ttl=3600)
 
     skills = profile.get("skills", []) or []
 
@@ -449,6 +458,11 @@ async def recalculate_jobs(
         db.add(history)
 
     db.commit()
+
+    # CACHE INVALIDATION
+    cache_delete_pattern(
+        f"jobs:{user.id}:{data.cv_id}:{normalize(data.job_function)}:*"
+    )
 
     return {
         "jobs": result["jobs"],
@@ -544,7 +558,7 @@ def save_job_action(
     actions = cache_get(cache_key) or {}
 
     actions[str(job_id)] = {"status": status, "reason": reason}
-    cache_set(cache_key, actions)
+    cache_set(cache_key, actions, ttl=3600)
 
     return {"message": "saved"}
 
@@ -582,7 +596,7 @@ def get_dashboard(
             str(a.job_id): {"status": a.status, "reason": a.reason} for a in db_actions
         }
 
-        cache_set(cache_key, actions)
+        cache_set(cache_key, actions, ttl=3600)
 
     # JOB HISTORY
     job_history = []

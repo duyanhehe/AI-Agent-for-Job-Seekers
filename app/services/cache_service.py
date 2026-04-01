@@ -9,3 +9,12 @@ def cache_get(key):
 
 def cache_set(key, value, ttl=3600):
     redis_client.setex(f"app:{key}", ttl, json.dumps(value))
+
+
+def cache_delete(key: str):
+    redis_client.delete(key)
+
+
+def cache_delete_pattern(pattern: str):
+    for key in redis_client.scan_iter(pattern):
+        redis_client.delete(key)
