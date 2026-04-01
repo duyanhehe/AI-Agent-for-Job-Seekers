@@ -1,5 +1,8 @@
 {
   "scripts": {
     "dev": "concurrently \"uvicorn app.main:app --reload\" \"cd frontend && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }

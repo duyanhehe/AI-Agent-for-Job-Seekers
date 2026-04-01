@@ -8,7 +8,7 @@ import JobsMatched from "./pages/JobsMatched";
 import Resume from "./pages/Resume";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
+import PrivacyPolicy from "./pages/Privacy";
 
 import { AuthProvider } from "./hooks/AuthContextProvider";
 

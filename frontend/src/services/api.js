@@ -1,47 +1,45 @@
+import axios from "axios";
+
 const API = "http://localhost:8000";
 
-export async function signup(data) {
-  const res = await fetch(`${API}/auth/signup`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
+// Axios instance
+const api = axios.create({
+  baseURL: API,
+  withCredentials: true,
+});
 
-  return res.json();
+// ================= AUTH =================
+
+export async function signup(data) {
+  const res = await api.post("/auth/signup", data);
+  return res.data;
 }
 
 export async function login(data) {
-  const res = await fetch(`${API}/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-
-  const json = await res.json();
-
-  return {
-    ok: res.ok,
-    status: res.status,
-    data: json,
-  };
+  try {
+    const res = await api.post("/auth/login", data);
+    return {
+      ok: true,
+      status: res.status,
+      data: res.data,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      status: err.response?.status,
+      data: err.response?.data,
+    };
+  }
 }
 
 export async function logout() {
-  const res = await fetch(`${API}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
-
-  return res.json();
+  const res = await api.post("/auth/logout");
+  return res.data;
 }
 
 export async function getMe() {
-  const res = await fetch(`${API}/auth/me`, {
-    credentials: "include",
-  });
-
-  return res.json();
+  const res = await api.get("/auth/me");
+  return res.data;
 }
 
 export async function resetPassword(oldPassword, newPassword) {
@@ -49,166 +47,114 @@ export async function resetPassword(oldPassword, newPassword) {
   formData.append("old_password", oldPassword);
   formData.append("new_password", newPassword);
 
-  const res = await fetch(`${API}/auth/reset-password`, {
-    method: "POST",
-    credentials: "include",
-    body: formData,
-  });
-
-  return res.json();
+  const res = await api.post("/auth/reset-password", formData);
+  return res.data;
 }
 
 export async function deleteAccount() {
-  const res = await fetch(`${API}/auth/delete-account`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-
-  return res.json();
+  const res = await api.delete("/auth/delete-account");
+  return res.data;
 }
 
+// ================= DATA =================
+
 export async function getJobFunctions() {
-  const res = await fetch(`${API}/job-functions`);
-  return res.json();
+  const res = await api.get("/job-functions");
+  return res.data;
 }
 
 export async function getCountries() {
-  const res = await fetch(`${API}/countries`);
-  return res.json();
+  const res = await api.get("/countries");
+  return res.data;
 }
 
-export async function uploadCV(formData) {
-  const res = await fetch(`${API}/upload/cv`, {
-    method: "POST",
-    body: formData,
-    credentials: "include",
-  });
+// ================= CV =================
 
-  return res.json();
+export async function uploadCV(formData) {
+  const res = await api.post("/upload/cv", formData);
+  return res.data;
 }
 
 export async function deleteCVAPI(cv_id) {
-  const res = await fetch(`${API}/cv/${cv_id}`, {
-    method: "DELETE",
-    credentials: "include",
-  });
-
-  return res.json();
+  const res = await api.delete(`/cv/${cv_id}`);
+  return res.data;
 }
 
 export async function renameCVAPI(cv_id, newName) {
   const formData = new FormData();
   formData.append("new_name", newName);
 
-  const res = await fetch(`${API}/cv/${cv_id}/rename`, {
-    method: "PUT",
-    credentials: "include",
-    body: formData,
-  });
-
-  return res.json();
+  const res = await api.put(`/cv/${cv_id}/rename`, formData);
+  return res.data;
 }
 
 export async function setPrimaryCVAPI(cv_id) {
-  const res = await fetch(`${API}/cv/${cv_id}/set-primary`, {
-    method: "PUT",
-    credentials: "include",
-  });
-
-  return res.json();
+  const res = await api.put(`/cv/${cv_id}/set-primary`);
+  return res.data;
 }
 
-export async function recalculateJobs(data) {
-  const res = await fetch(`${API}/job/recalculate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
+// ================= JOB =================
 
-  return res.json();
+export async function recalculateJobs(data) {
+  const res = await api.post("/job/recalculate", data);
+  return res.data;
 }
 
 export async function analyzeJob(data) {
-  const res = await fetch(`${API}/job/analyze`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-
-  return res.json();
+  const res = await api.post("/job/analyze", data);
+  return res.data;
 }
 
 export async function askQuestion(data) {
-  const res = await fetch(`${API}/job/question`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-
-  return res.json();
+  const res = await api.post("/job/question", data);
+  return res.data;
 }
+
+// ================= DASHBOARD =================
 
 export async function getDashboard() {
-  const res = await fetch(`${API}/user/dashboard`, {
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Not authenticated");
-
-  return res.json();
+  try {
+    const res = await api.get("/user/dashboard");
+    return res.data;
+  } catch (err) {
+    throw new Error("Not authenticated");
+  }
 }
+
+// ================= JOB ACTIONS =================
 
 export async function saveJobAction(formData) {
-  const res = await fetch(`${API}/job/action`, {
-    method: "POST",
-    body: formData,
-    credentials: "include",
-  });
-
-  return res.json();
+  const res = await api.post("/job/action", formData);
+  return res.data;
 }
 
-export async function saveExternalJob(formData) {
-  const res = await fetch(`${API}/external-job`, {
-    method: "POST",
-    body: formData,
-    credentials: "include",
-  });
+// ================= EXTERNAL JOB =================
 
-  return res.json();
+export async function saveExternalJob(formData) {
+  const res = await api.post("/external-job", formData);
+  return res.data;
 }
 
 export async function getExternalJobs() {
-  const res = await fetch(`${API}/external-job`, {
-    credentials: "include",
-  });
-
-  return res.json();
+  const res = await api.get("/external-job");
+  return res.data;
 }
+
+// ================= PROFILE =================
 
 export async function updateProfile(profile) {
-  const res = await fetch(`${API}/profile`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(profile),
-  });
-
-  return res.json();
+  const res = await api.put("/profile", profile);
+  return res.data;
 }
 
+// ================= DOWNLOAD =================
+
 export const downloadProfile = async () => {
-  const res = await fetch(`${API}/profile/export/docx`, {
-    method: "GET",
-    credentials: "include",
+  const res = await api.get("/profile/export/docx", {
+    responseType: "blob", // VERY IMPORTANT
   });
 
-  if (!res.ok) throw new Error("Download failed");
-
-  const blob = await res.blob();
-
+  const blob = new Blob([res.data]);
   const url = window.URL.createObjectURL(blob);
 
   const a = document.createElement("a");
