@@ -175,6 +175,96 @@ Job Description:
 """
         return await self._call_llm(prompt)
 
+    async def generate_interview(self, cv, job):
+        prompt = f"""
+{SYSTEM_RULES}
+
+You are simulating a job interview.
+
+STRICT RULES:
+- Only generate interview-related content
+- Do NOT include explanations outside JSON
+- Do NOT guess missing information
+- Questions must be relevant to BOTH CV and job
+
+TASK:
+1. Generate 5-8 interview questions
+2. Mix types:
+   - technical
+   - behavioral
+   - situational
+3. Tailor questions to candidate's experience + job requirements
+
+4. Provide evaluation:
+   - overall difficulty
+   - key focus areas
+   - tips to succeed
+
+Return JSON:
+
+{{
+  "questions": [
+    {{
+      "question": "",
+      "type": "technical | behavioral | situational",
+      "expected_focus": ""
+    }}
+  ],
+  "evaluation": {{
+    "difficulty": "",
+    "focus_areas": [],
+    "tips": []
+  }}
+}}
+
+Candidate CV:
+{cv}
+
+Job:
+{job}
+"""
+        return await self._call_llm(prompt)
+
+    async def grade_interview(self, cv, job, answers):
+        prompt = f"""
+{SYSTEM_RULES}
+
+You are evaluating a candidate's interview answers.
+
+STRICT RULES:
+- Evaluate each answer
+- Be realistic and critical
+- No hallucination
+- Return JSON only
+
+Candidate CV:
+{cv}
+
+Job:
+{job}
+
+Answers:
+{answers}
+
+Return JSON:
+
+{{
+  "results": [
+    {{
+      "question": "",
+      "score": 0,
+      "feedback": ""
+    }}
+  ],
+  "overall": {{
+    "average_score": 0,
+    "summary": "",
+    "improvements": []
+  }}
+}}
+"""
+        return await self._call_llm(prompt)
+
     async def _call_llm(self, prompt):
         payload = {
             "model": "llama3.2:3b",

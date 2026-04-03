@@ -283,8 +283,18 @@ function JobsMatched() {
                 filteredJobs.map((job) => (
                   <JobCard
                     key={job.job_id}
-                    job={job}
-                    onSelect={() => setSelectedJob(job)}
+                    job={{
+                      ...job,
+                      cv_text: activeCV?.cv_text,
+                      cv_id: activeCV?.cv_id,
+                    }}
+                    onSelect={() =>
+                      setSelectedJob({
+                        ...job,
+                        cv_text: activeCV?.cv_text,
+                        cv_id: activeCV?.cv_id,
+                      })
+                    }
                     onStatusChange={(jobId, newStatus) => {
                       setData((prev) => ({
                         ...prev,
@@ -302,7 +312,7 @@ function JobsMatched() {
           {!loadingRecalc && totalPages > 1 && (
             <div className="flex flex-col items-center mt-6 gap-3">
               <p className="text-sm text-gray-500">
-                Showing {indexOfFirst + 1}–
+                Showing {indexOfFirst + 1}-
                 {Math.min(indexOfLast, data.jobs.length)} of {data.jobs.length}{" "}
                 jobs
               </p>

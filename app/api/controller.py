@@ -25,6 +25,7 @@ from app.schemas.job_analysis import JobAnalysisRequest
 from app.schemas.job_recalculate import JobRecalculateRequest
 from app.schemas.job_question import JobQuestionRequest
 from app.schemas.external_job import ExternalJobCreate, ExternalJobResponse
+from app.schemas.interview import InterviewRequest, InterviewAnswerRequest
 
 from app.utils.file_utils import validate_file
 from app.utils.cv_parsers import extract_basic_info
@@ -75,7 +76,9 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
 
     session_id = auth_service.create_session(user.id)
 
-    response.set_cookie(key="session_id", value=session_id, httponly=True)
+    response.set_cookie(
+        key="session_id", value=session_id, httponly=True, samesite="lax"
+    )
 
     return {"message": "Logged in"}
 
@@ -348,6 +351,7 @@ def delete_cv(
     # cache invalidation
     cache_delete_pattern(f"jobs:{user.id}:{cv_id}:*")
     cache_delete_pattern(f"profile:{user.id}:*")
+    cache_delete_pattern(f"interview:{user.id}:{cv_id}:*")
 
     return {"message": "CV deleted"}
 
@@ -789,3 +793,49 @@ def export_profile_docx(
     db: Session = Depends(get_db),
 ):
     return export_profile_docx_service(user.id, db)
+
+
+# --------------------------------------------------
+# MOCK JOB INTERVIEW
+# --------------------------------------------------
+@router.post("/job/interview")
+async def generate_interview(
+    data: InterviewRequest,
+    user=Depends(get_current_user),
+    llm_service=Depends(get_llm_service),
+):
+    job = index_manager.jobs_data[data.job_id]
+
+    # CACHE KEY DESIGN
+    cv_hash = make_hash(normalize(data.cv_text))
+    cache_key = f"interview:{user.id}:{data.cv_id}:{data.job_id}:{cv_hash}"
+
+    cached = cache_get(cache_key)
+    if cached:
+        return cached
+
+    # LLM CALL
+    result = await llm_service.generate_interview(data.cv_text, job)
+
+    response = {
+        "job_id": data.job_id,
+        "interview": result,
+    }
+
+    # STORE CACHE
+    cache_set(cache_key, response, ttl=3600)
+
+    return response
+
+
+@router.post("/job/interview/grade")
+async def grade_interview(
+    data: InterviewAnswerRequest,
+    user=Depends(get_current_user),
+    llm_service=Depends(get_llm_service),
+):
+    job = index_manager.jobs_data[data.job_id]
+
+    result = await llm_service.grade_interview(data.cv_text, job, data.answers)
+
+    return result

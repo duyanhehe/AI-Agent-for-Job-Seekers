@@ -9,6 +9,7 @@ import Resume from "./pages/Resume";
 import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PrivacyPolicy from "./pages/Privacy";
+import Interview from "./pages/Interview";
 
 import { AuthProvider } from "./hooks/AuthContextProvider";
 
@@ -58,6 +59,14 @@ function App() {
           />
 
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route
+            path="/jobs/interview"
+            element={
+              <ProtectedRoute>
+                <Interview />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

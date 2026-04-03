@@ -166,3 +166,15 @@ export const downloadProfile = async () => {
 
   window.URL.revokeObjectURL(url);
 };
+
+// ================= INTERVIEW =================
+
+export async function generateInterview(data) {
+  const res = await api.post("/job/interview", data);
+  return res.data;
+}
+
+export async function gradeInterview(data) {
+  const res = await api.post("/job/interview/grade", data);
+  return res.data;
+}
