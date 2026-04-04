@@ -487,7 +487,19 @@ async def analyze_job(
 ):
     job = index_manager.jobs_data[data.job_id]
 
-    analysis = await llm_service.match_cv_to_job(data.cv_text, job)
+    rag_cache_key = f"rag:{data.job_id}"
+
+    rag_context = cache_get(rag_cache_key)
+
+    if not rag_context:
+        rag_context = index_manager.build_rag_context(
+            f"{job.get('job_role', '')} {job.get('job_function', '')}"
+        )
+        cache_set(rag_cache_key, rag_context, ttl=3600)
+
+    analysis = await llm_service.match_cv_to_job(
+        data.cv_text, job, rag_context=rag_context
+    )
 
     return {"job": job, "analysis": analysis}
 
@@ -506,7 +518,18 @@ async def ask_job_question(
 ):
     job = index_manager.jobs_data[data.job_id]
 
-    answer = await llm_service.answer_job_question(data.cv_text, job, data.question)
+    rag_cache_key = f"rag:q:{data.job_id}"
+
+    rag_context = cache_get(rag_cache_key)
+    if not rag_context:
+        rag_context = index_manager.build_rag_context(
+            f"{job.get('job_role', '')} {data.question}"
+        )
+        cache_set(rag_cache_key, rag_context, ttl=3600)
+
+    answer = await llm_service.answer_job_question(
+        data.cv_text, job, data.question, rag_context=rag_context
+    )
     answer_text = ""
 
     if isinstance(answer, dict):
@@ -815,7 +838,18 @@ async def generate_interview(
         return cached
 
     # LLM CALL
-    result = await llm_service.generate_interview(data.cv_text, job)
+    rag_cache_key = f"rag:interview:{data.job_id}"
+
+    rag_context = cache_get(rag_cache_key)
+    if not rag_context:
+        rag_context = index_manager.build_rag_context(
+            f"{job.get('job_role', '')} interview questions"
+        )
+        cache_set(rag_cache_key, rag_context, ttl=3600)
+
+    result = await llm_service.generate_interview(
+        data.cv_text, job, rag_context=rag_context
+    )
 
     response = {
         "job_id": data.job_id,
@@ -836,6 +870,16 @@ async def grade_interview(
 ):
     job = index_manager.jobs_data[data.job_id]
 
-    result = await llm_service.grade_interview(data.cv_text, job, data.answers)
+    rag_cache_key = f"rag:grade:{data.job_id}"
 
+    rag_context = cache_get(rag_cache_key)
+    if not rag_context:
+        rag_context = index_manager.build_rag_context(
+            f"{job.get('job_role', '')} evaluation criteria"
+        )
+        cache_set(rag_cache_key, rag_context, ttl=3600)
+
+    result = await llm_service.grade_interview(
+        data.cv_text, job, data.answers, rag_context=rag_context
+    )
     return result

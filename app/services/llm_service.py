@@ -22,21 +22,39 @@ Always respond strictly in JSON.
 
 
 class LLMService:
-    def __init__(self):
+    def __init__(self, index_manager):
         self.base_url = "http://localhost:11434/api/generate"
+        self.index_manager = index_manager
 
-    async def match_cv_to_job(self, cv, job):
+    def _get_rag_context(self, query):
+        context = self.index_manager.build_rag_context(query)
+        return context[:2000]  # Limit context size for LLM input
 
+    # --------------------------------------------------
+    # Match CV to job
+    # --------------------------------------------------
+    async def match_cv_to_job(self, cv, job, rag_context=None):
+        if not rag_context:
+            rag_context = self._get_rag_context(
+                query=f"{job.get('job_role', '')} {job.get('job_function', '')} skills requirements"
+            )
         prompt = f"""
 {SYSTEM_RULES}
 
 Evaluate how well the candidate matches the job.
+
+Use the provided MARKET CONTEXT to improve accuracy.
+- Do not hallucinate
+- Base reasoning on real-world expectations
 
 CV:
 {cv}
 
 Job:
 {job}
+
+Market Context:
+{rag_context}
 
 Return JSON:
 
@@ -46,9 +64,11 @@ Return JSON:
 "summary": ""
 }}
 """
-
         return await self._call_llm(prompt)
 
+    # --------------------------------------------------
+    # Extracting structured profile from CV
+    # --------------------------------------------------
     async def extract_profile(self, cv_text, basic_info=None):
         prompt = f"""
 Extract structured user profile from this CV.
@@ -100,17 +120,29 @@ CV:
 """
         return await self._call_llm(prompt)
 
-    async def answer_job_question(self, cv, job, question):
+    # --------------------------------------------------
+    # Answering job-related questions
+    # --------------------------------------------------
+    async def answer_job_question(self, cv, job, question, rag_context=None):
+        if not rag_context:
+            rag_context = self._get_rag_context(
+                query=f"{job.get('job_role', '')} {question}"
+            )
+
         prompt = f"""
 {SYSTEM_RULES}
 You MUST return valid JSON only.
-DO NOT include any explanation outside JSON.
+
+Use MARKET CONTEXT if helpful to answer.
 
 Candidate CV:
 {cv}
 
 Job:
 {job}
+
+Market Context:
+{rag_context}
 
 Question:
 {question}
@@ -122,9 +154,11 @@ Return EXACTLY this format:
 "reason": "string"
 }}
 """
-
         return await self._call_llm(prompt)
 
+    # --------------------------------------------------
+    # Job extraction from description
+    # --------------------------------------------------
     async def extract_external_job(self, description: str):
         prompt = f"""
 Extract structured job information from this job description.
@@ -175,7 +209,15 @@ Job Description:
 """
         return await self._call_llm(prompt)
 
-    async def generate_interview(self, cv, job):
+    # --------------------------------------------------
+    # Interview generation
+    # --------------------------------------------------
+    async def generate_interview(self, cv, job, rag_context=None):
+        if not rag_context:
+            rag_context = self._get_rag_context(
+                query=f"{job.get('job_role', '')} interview questions skills"
+            )
+
         prompt = f"""
 {SYSTEM_RULES}
 
@@ -185,7 +227,7 @@ STRICT RULES:
 - Only generate interview-related content
 - Do NOT include explanations outside JSON
 - Do NOT guess missing information
-- Questions must be relevant to BOTH CV and job
+- Use MARKET CONTEXT for realistic questions
 
 TASK:
 1. Generate 5-8 interview questions
@@ -199,6 +241,15 @@ TASK:
    - overall difficulty
    - key focus areas
    - tips to succeed
+
+Candidate CV:
+{cv}
+
+Job:
+{job}
+
+Market Context:
+{rag_context}
 
 Return JSON:
 
@@ -216,16 +267,18 @@ Return JSON:
     "tips": []
   }}
 }}
-
-Candidate CV:
-{cv}
-
-Job:
-{job}
 """
         return await self._call_llm(prompt)
 
-    async def grade_interview(self, cv, job, answers):
+    # --------------------------------------------------
+    # Interview grading
+    # --------------------------------------------------
+    async def grade_interview(self, cv, job, answers, rag_context=None):
+        if not rag_context:
+            rag_context = self._get_rag_context(
+                query=f"{job.get('job_role', '')} expected answers skills evaluation"
+            )
+
         prompt = f"""
 {SYSTEM_RULES}
 
@@ -235,13 +288,16 @@ STRICT RULES:
 - Evaluate each answer
 - Be realistic and critical
 - No hallucination
-- Return JSON only
+- Use MARKET CONTEXT to benchmark answers
 
 Candidate CV:
 {cv}
 
 Job:
 {job}
+
+Market Context:
+{rag_context}
 
 Answers:
 {answers}

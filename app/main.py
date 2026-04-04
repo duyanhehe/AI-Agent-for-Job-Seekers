@@ -5,6 +5,13 @@ from app.api.controller import router
 from app.core.dependencies import index_manager
 from app.core.database import engine, Base
 from app.models.user import User
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+logging.getLogger("httpx").propagate = False
+logging.getLogger("huggingface_hub").propagate = False
+logging.getLogger("transformers").propagate = False
 
 
 @asynccontextmanager

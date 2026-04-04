@@ -49,5 +49,9 @@ def get_reader():
     return DocumentReader()
 
 
-def get_llm_service():
-    return LLMService()
+def get_index_manager():
+    return IndexManager()
+
+
+def get_llm_service(index_manager=Depends(get_index_manager)):
+    return LLMService(index_manager)

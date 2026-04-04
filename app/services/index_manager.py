@@ -238,3 +238,19 @@ Skills: {", ".join(all_skills)}
             "warning": country_warning,
             "jobs": final_jobs,
         }
+
+    # --------------------------------------------------
+    def build_rag_context(self, query, top_k=5):
+        jobs = self.retrieve_similar_jobs(query, top_k)
+
+        return "\n\n".join(
+            [
+                f"""
+Role: {j["job_role"]}
+Company: {j["company"]}
+Location: {j.get("location")}
+Skills: {", ".join(j.get("skills", []))}
+"""
+                for j in jobs
+            ]
+        )
