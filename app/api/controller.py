@@ -132,6 +132,7 @@ def delete_account(
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    db.query(ExternalJob).filter_by(user_id=user.id).delete()
     db.query(JobMatchedHistory).filter_by(user_id=user.id).delete()
     db.query(ChatHistory).filter_by(user_id=user.id).delete()
     db.query(JobAction).filter_by(user_id=user.id).delete()
@@ -341,7 +342,8 @@ def delete_cv(
 
     # delete related history
     db.query(JobMatchedHistory).filter(JobMatchedHistory.cv_id == cv_id).delete()
-
+    # delete related profiles
+    db.query(UserProfile).filter(UserProfile.cv_id == cv_id).delete()
     # delete related chats
     db.query(ChatHistory).filter(ChatHistory.user_id == user.id).delete()
 
@@ -433,6 +435,7 @@ async def recalculate_jobs(
         job_function=data.job_function,
         job_type=data.job_type,
         location=data.location,
+        date_filter=data.date_filter,
     )
 
     # Update job match history
@@ -680,7 +683,7 @@ def get_dashboard(
 # --------------------------------------------------
 
 
-@router.post("/external-job", response_model=ExternalJobResponse)
+@router.post("/external-jobs", response_model=ExternalJobResponse)
 async def save_external_job(
     title: str = Form(...),
     url: str = Form(...),
@@ -739,7 +742,7 @@ async def save_external_job(
     }
 
 
-@router.get("/external-job")
+@router.get("/external-jobs")
 async def get_external_jobs(
     user=Depends(get_current_user),
     db: Session = Depends(get_db),

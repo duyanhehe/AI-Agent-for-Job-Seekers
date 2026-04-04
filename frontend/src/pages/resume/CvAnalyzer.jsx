@@ -1,5 +1,5 @@
-import CVUploader from "../components/CVUploader";
-import Layout from "../components/Layout";
+import CVUploader from "../../components/resume/CVUploader";
+import Layout from "../../components/layout/Layout";
 
 function CvAnalyzer() {
   return (

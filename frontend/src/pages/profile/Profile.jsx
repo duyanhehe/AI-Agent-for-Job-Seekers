@@ -1,59 +1,24 @@
-import { useEffect, useState } from "react";
-import Layout from "../components/Layout";
-import { useDashboard } from "../hooks/useAuth";
-import { updateProfile, downloadProfile } from "../services/api";
-import Section from "../components/profile/Section";
-import Timeline from "../components/profile/Timeline";
-import Input from "../components/profile/Input";
-import ListEditor from "../components/profile/ListEditor";
+import Layout from "../../components/layout/Layout";
+import { useDashboard } from "../../hooks/auth/useAuth";
+import { downloadProfile } from "../../services/api";
+import Section from "../../components/profile/Section";
+import Timeline from "../../components/profile/Timeline";
+import Input from "../../components/profile/Input";
+import ListEditor from "../../components/profile/ListEditor";
+import useProfilePage from "../../hooks/profile/useProfilePage";
 
 function Profile() {
   const { dashboard, dashboardLoading, refreshDashboard } = useDashboard();
 
-  const [profile, setProfile] = useState(null);
-  const [editingSection, setEditingSection] = useState(null);
-  const [formData, setFormData] = useState({});
-
-  useEffect(() => {
-    if (!dashboard) {
-      refreshDashboard();
-    } else {
-      const latest = dashboard.job_history?.[0];
-      if (latest?.profile) setProfile(latest.profile);
-    }
-  }, [dashboard]);
-
-  const openEdit = (section, data) => {
-    setEditingSection(section);
-    setFormData(data || {});
-  };
-
-  const closeEdit = () => {
-    setEditingSection(null);
-    setFormData({});
-  };
-
-  const handleSave = async () => {
-    let updated;
-
-    if (editingSection === "personal") {
-      // merge into root
-      updated = {
-        ...profile,
-        ...formData,
-      };
-    } else {
-      updated = {
-        ...profile,
-        [editingSection]: formData,
-      };
-    }
-
-    setProfile(updated);
-    closeEdit();
-
-    await updateProfile(updated);
-  };
+  const {
+    profile,
+    editingSection,
+    formData,
+    setFormData,
+    openEdit,
+    closeEdit,
+    handleSave,
+  } = useProfilePage(dashboard, refreshDashboard);
 
   if (dashboardLoading || !profile) {
     return (

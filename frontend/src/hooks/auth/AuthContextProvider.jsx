@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getDashboard, getMe, logout as logoutAPI } from "../services/api";
+import { getDashboard, getMe, logout as logoutAPI } from "../../services/api";
 import { AuthContext } from "./AuthContext";
 
 export function AuthProvider({ children }) {

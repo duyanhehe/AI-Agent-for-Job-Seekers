@@ -1,17 +1,16 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../services/api";
-import { useAuth } from "../hooks/useAuth";
-import Layout from "../components/Layout";
-import Spinner from "../components/Spinner";
-import useAuthForm from "../hooks/useAuthForm";
+import { login } from "../../services/api";
+import { useAuth } from "../../hooks/auth/useAuth";
+import Layout from "../../components/layout/Layout";
+import Spinner from "../../components/layout/Spinner";
+import useAuthForm from "../../hooks/auth/useAuthForm";
+import useCredentials from "../../hooks/auth/useCredentials";
 
 function Login() {
   const navigate = useNavigate();
   const { fetchDashboard, fetchUser, setIsLoggedIn } = useAuth();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { email, password, setEmail, setPassword } = useCredentials();
 
   const { loading, error, handleSubmit } = useAuthForm(login, async () => {
     // Fetch dashboard and update isLoggedIn in context

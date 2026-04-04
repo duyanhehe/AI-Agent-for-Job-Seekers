@@ -131,12 +131,12 @@ export async function saveJobAction(formData) {
 // ================= EXTERNAL JOB =================
 
 export async function saveExternalJob(formData) {
-  const res = await api.post("/external-job", formData);
+  const res = await api.post("/external-jobs", formData);
   return res.data;
 }
 
 export async function getExternalJobs() {
-  const res = await api.get("/external-job");
+  const res = await api.get("/external-jobs");
   return res.data;
 }
 

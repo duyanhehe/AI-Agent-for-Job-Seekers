@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { deleteCVAPI, renameCVAPI, setPrimaryCVAPI } from "../services/api";
-import { useDashboard } from "./useAuth";
+import { deleteCVAPI, renameCVAPI, setPrimaryCVAPI } from "../../services/api";
+import { useDashboard } from "../auth/useAuth";
 
 export default function useResume() {
   const { dashboard, dashboardLoading, refreshDashboard } = useDashboard();

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getJobFunctions, getCountries, uploadCV } from "../services/api";
+import { getJobFunctions, getCountries, uploadCV } from "../../services/api";
 
 export default function useCVUploader(navigate, fetchDashboard) {
   const [jobFunctions, setJobFunctions] = useState([]);

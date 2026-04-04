@@ -1,16 +1,15 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { signup, login } from "../services/api";
-import { useAuth } from "../hooks/useAuth";
-import Layout from "../components/Layout";
-import Spinner from "../components/Spinner";
-import useAuthForm from "../hooks/useAuthForm";
+import { signup, login } from "../../services/api";
+import { useAuth } from "../../hooks/auth/useAuth";
+import Layout from "../../components/layout/Layout";
+import Spinner from "../../components/layout/Spinner";
+import useAuthForm from "../../hooks/auth/useAuthForm";
+import useCredentials from "../../hooks/auth/useCredentials";
 
 function Signup() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { email, password, setEmail, setPassword } = useCredentials();
 
   const { fetchDashboard, fetchUser, setIsLoggedIn } = useAuth();
 

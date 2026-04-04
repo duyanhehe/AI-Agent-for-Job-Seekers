@@ -1,7 +1,7 @@
-import Layout from "../components/Layout";
+import Layout from "../../components/layout/Layout";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import useResume from "../hooks/useResume";
+import useResume from "../../hooks/resume/useResume";
 
 function Resume() {
   const navigate = useNavigate();
@@ -80,7 +80,9 @@ function Resume() {
               <div className="relative">
                 <button
                   onClick={() =>
-                    setOpenMenu(openMenu === cv.cv_id ? null : cv.cv_id)
+                    setOpenMenu((prev) =>
+                      prev === cv.cv_id ? null : cv.cv_id,
+                    )
                   }
                   className="px-2 py-1 rounded"
                 >

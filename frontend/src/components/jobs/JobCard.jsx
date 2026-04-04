@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { saveJobAction } from "../services/api";
+import useJobCard from "../../hooks/jobs/useJobCard";
 
 function JobCard({ job, onSelect, onStatusChange }) {
   const navigate = useNavigate();
-  const [showReport, setShowReport] = useState(false);
 
-  const [status, setStatus] = useState(job.status || null);
-
-  useEffect(() => {
-    setStatus(job.status || null);
-  }, [job.status]);
+  const {
+    showReport,
+    setShowReport,
+    status,
+    selectedReason,
+    setSelectedReason,
+    handleAction,
+    cancelReport,
+  } = useJobCard(job, onStatusChange);
 
   const location = job.location || job.country || "Unknown";
   const salary = job.salary || "TBA";
@@ -24,29 +26,6 @@ function JobCard({ job, onSelect, onStatusChange }) {
     if (score >= 60) return "GOOD MATCH";
     if (score >= 40) return "FAIR MATCH";
     return "WEAK MATCH";
-  };
-
-  const handleAction = async (newStatus, reason = null) => {
-    try {
-      const formData = new FormData();
-      formData.append("job_id", job.job_id);
-      formData.append("status", newStatus);
-      if (reason) formData.append("reason", reason);
-
-      await saveJobAction(formData);
-
-      setStatus(newStatus);
-
-      if (onStatusChange) {
-        onStatusChange(job.job_id, newStatus);
-      }
-
-      alert(`Saved as ${newStatus}`);
-      setShowReport(false);
-    } catch (err) {
-      console.error(err);
-      alert("Action failed");
-    }
   };
 
   const getBadgeColor = () => {
@@ -80,8 +59,6 @@ function JobCard({ job, onSelect, onStatusChange }) {
       value: "irrelevant",
     },
   ];
-
-  const [selectedReason, setSelectedReason] = useState(null);
 
   return (
     <>
@@ -320,7 +297,7 @@ function JobCard({ job, onSelect, onStatusChange }) {
       {showReport && (
         <div
           className="fixed inset-0 z-50 bg-black/50 flex justify-center items-center"
-          onClick={() => setShowReport(false)}
+          onClick={() => cancelReport()}
         >
           <div
             className="bg-white p-6 rounded-2xl shadow-lg w-[420px]"
@@ -355,10 +332,7 @@ function JobCard({ job, onSelect, onStatusChange }) {
             {/* ACTION BUTTONS */}
             <div className="flex justify-between mt-5 gap-3">
               <button
-                onClick={() => {
-                  setShowReport(false);
-                  setSelectedReason(null);
-                }}
+                onClick={() => cancelReport()}
                 className="w-full py-2 rounded-lg bg-gray-100 hover:bg-gray-200"
               >
                 Cancel

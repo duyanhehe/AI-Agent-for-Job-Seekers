@@ -1,13 +1,11 @@
-import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Layout from "../components/Layout";
-import JobCard from "../components/JobCard";
-import AIAgentPanel from "../components/AIAgentPanel";
-import Spinner from "../components/Spinner";
-import useJobsMatched from "../hooks/useJobsMatched";
-import ExternalJobCard from "../components/ExternalJobCard";
-import ExternalJobDrawer from "../components/ExternalJobDrawer";
-import { getExternalJobs } from "../services/api";
+import Layout from "../../components/layout/Layout";
+import JobCard from "../../components/jobs/JobCard";
+import AIAgentPanel from "../../components/jobs/AIAgentPanel";
+import Spinner from "../../components/layout/Spinner";
+import useJobsMatched from "../../hooks/jobs/useJobsMatched";
+import ExternalJobCard from "../../components/jobs/ExternalJobCard";
+import ExternalJobDrawer from "../../components/jobs/ExternalJobDrawer";
 
 function JobsMatched() {
   const location = useLocation();
@@ -40,37 +38,13 @@ function JobsMatched() {
 
     handleRecalculate,
     setData,
+    externalJobs,
+    showDrawer,
+    setShowDrawer,
+    refreshExternalJobs,
   } = useJobsMatched(location, navigate);
-  const [externalJobs, setExternalJobs] = useState([]);
-  const [showDrawer, setShowDrawer] = useState(false);
+
   const tab = new URLSearchParams(location.search).get("tab") || "recommended";
-
-  useEffect(() => {
-    async function loadExternal() {
-      try {
-        const jobs = await getExternalJobs();
-
-        const formatted = jobs.map((j) => ({
-          job_id: j.id,
-          job_role: j.job_role,
-          company: j.company,
-          location: j.location,
-          url: j.url,
-          job_type: j.job_type,
-          salary: j.salary,
-          skills: j.skills,
-          type_skills: j.type_skills,
-          status: "external",
-        }));
-
-        setExternalJobs(formatted);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    loadExternal();
-  }, []);
 
   if (!data) return <p className="p-6">Loading...</p>;
 
@@ -81,25 +55,6 @@ function JobsMatched() {
     if (tab === "external") return job.status === "external"; // future
     return true;
   });
-
-  const handleAddExternalJob = async () => {
-    const jobs = await getExternalJobs();
-
-    const formatted = jobs.map((j) => ({
-      job_id: j.id,
-      job_role: j.job_role,
-      company: j.company,
-      location: j.location,
-      url: j.url,
-      job_type: j.job_type,
-      salary: j.salary,
-      skills: j.skills,
-      type_skills: j.type_skills,
-      status: "external",
-    }));
-
-    setExternalJobs(formatted);
-  };
 
   return (
     <Layout>
@@ -371,7 +326,7 @@ function JobsMatched() {
       <ExternalJobDrawer
         open={showDrawer}
         onClose={() => setShowDrawer(false)}
-        onSave={handleAddExternalJob}
+        onSave={refreshExternalJobs}
       />
     </Layout>
   );

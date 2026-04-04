@@ -1,19 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { useAuth, useDashboard } from "../hooks/useAuth";
-import Layout from "../components/Layout";
+import { useAuth, useDashboard } from "../../hooks/auth/useAuth";
+import Layout from "../../components/layout/Layout";
 
 function Home() {
   const navigate = useNavigate();
   const { isLoggedIn } = useAuth();
   const { dashboard, dashboardLoading } = useDashboard();
-  const [hasHistory, setHasHistory] = useState(false);
-
-  useEffect(() => {
-    if (!dashboardLoading && dashboard) {
-      setHasHistory(dashboard?.job_history?.length > 0);
-    }
-  }, [dashboard, dashboardLoading]);
+  const hasHistory =
+    !dashboardLoading && (dashboard?.job_history?.length ?? 0) > 0;
 
   return (
     <Layout>

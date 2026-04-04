@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import Spinner from "../components/Spinner";
-import useCVUploader from "../hooks/useCVUploader";
+import { useAuth } from "../../hooks/auth/useAuth";
+import Spinner from "../layout/Spinner";
+import useCVUploader from "../../hooks/resume/useCVUploader";
 
 function CVUploader() {
   const navigate = useNavigate();

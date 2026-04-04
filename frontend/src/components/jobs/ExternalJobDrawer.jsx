@@ -1,22 +1,29 @@
-import { useState } from "react";
-import { saveExternalJob } from "../services/api";
+import useExternalJobForm from "../../hooks/jobs/useExternalJobForm";
+import { saveExternalJob } from "../../services/api";
 
 function ExternalJobDrawer({ open, onClose, onSave }) {
+  const { form, handleChange, resetForm } = useExternalJobForm();
+
+  /**
+   * POSTs multipart form to /external-jobs, then refreshes the list and closes.
+   */
   const handleSubmit = async () => {
     if (!form.title || !form.company || !form.description) {
       alert("Please fill required fields");
       return;
     }
 
-    try {
-      const formData = new FormData();
-      formData.append("title", form.title);
-      formData.append("company", form.company);
-      formData.append("location", form.location);
-      formData.append("url", form.url);
-      formData.append("description", form.description);
+    const formData = new FormData();
+    formData.append("title", form.title);
+    formData.append("company", form.company);
+    formData.append("location", form.location || "");
+    formData.append("url", form.url || "");
+    formData.append("description", form.description);
 
+    try {
+      await saveExternalJob(formData);
       await onSave();
+      resetForm();
       onClose();
     } catch (err) {
       console.error(err);
@@ -24,19 +31,7 @@ function ExternalJobDrawer({ open, onClose, onSave }) {
     }
   };
 
-  const [form, setForm] = useState({
-    title: "",
-    company: "",
-    location: "",
-    url: "",
-    description: "",
-  });
-
   if (!open) return null;
-
-  const handleChange = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex">

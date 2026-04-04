@@ -1,41 +1,21 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import Layout from "../components/Layout";
-import { generateInterview, gradeInterview } from "../services/api";
+import Layout from "../../components/layout/Layout";
+import useInterview from "../../hooks/jobs/useInterview";
 
 function Interview() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const job = state?.job;
 
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(null);
-
-  const [answers, setAnswers] = useState({});
-  const [grading, setGrading] = useState(false);
-  const [result, setResult] = useState(null);
-
-  useEffect(() => {
-    if (!job) return;
-
-    const fetchInterview = async () => {
-      try {
-        const res = await generateInterview({
-          cv_id: job.cv_id,
-          cv_text: job.cv_text,
-          job_id: job.job_id,
-        });
-
-        setData(res.interview);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchInterview();
-  }, [job]);
+  const {
+    loading,
+    data,
+    answers,
+    setAnswers,
+    grading,
+    result,
+    submitGrading,
+  } = useInterview(job);
 
   return (
     <Layout>
@@ -97,28 +77,7 @@ function Interview() {
 
             {/* SUBMIT */}
             <button
-              onClick={async () => {
-                setGrading(true);
-
-                try {
-                  const payload = data.questions.map((q, i) => ({
-                    question: q.question,
-                    answer: answers[i] || "",
-                  }));
-
-                  const res = await gradeInterview({
-                    cv_text: job.cv_text,
-                    job_id: job.job_id,
-                    answers: payload,
-                  });
-
-                  setResult(res);
-                } catch (err) {
-                  console.error(err);
-                } finally {
-                  setGrading(false);
-                }
-              }}
+              onClick={() => submitGrading()}
               disabled={grading}
               className="mt-6 bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
             >

@@ -1,17 +1,17 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import CvAnalyzer from "./pages/CvAnalyzer";
-import JobsMatched from "./pages/JobsMatched";
-import Resume from "./pages/Resume";
-import Profile from "./pages/Profile";
-import ProtectedRoute from "./components/ProtectedRoute";
-import PrivacyPolicy from "./pages/Privacy";
-import Interview from "./pages/Interview";
+import Home from "./pages/auth/Home";
+import Login from "./pages/auth/Login";
+import Signup from "./pages/auth/Signup";
+import CvAnalyzer from "./pages/resume/CvAnalyzer";
+import JobsMatched from "./pages/jobs/JobsMatched";
+import Resume from "./pages/resume/Resume";
+import Profile from "./pages/profile/Profile";
+import ProtectedRoute from "./components/layout/ProtectedRoute";
+import PrivacyPolicy from "./pages/legal/Privacy";
+import Interview from "./pages/jobs/Interview";
 
-import { AuthProvider } from "./hooks/AuthContextProvider";
+import { AuthProvider } from "./hooks/auth/AuthContextProvider";
 
 function App() {
   return (

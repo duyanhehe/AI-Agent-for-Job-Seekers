@@ -1,11 +1,32 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   getJobFunctions,
   getCountries,
   recalculateJobs,
-} from "../services/api";
-import { useDashboard } from "./useAuth";
-import usePagination from "./usePagination";
+  getExternalJobs,
+} from "../../services/api";
+import { useDashboard } from "../auth/useAuth";
+import usePagination from "../common/usePagination";
+
+/**
+ * Maps API external jobs to the shape used by job cards in the external tab.
+ * @param {object[]} jobs
+ * @returns {object[]}
+ */
+function formatExternalJobs(jobs) {
+  return jobs.map((j) => ({
+    job_id: j.id,
+    job_role: j.job_role,
+    company: j.company,
+    location: j.location,
+    url: j.url,
+    job_type: j.job_type,
+    salary: j.salary,
+    skills: j.skills,
+    type_skills: j.type_skills,
+    status: "external",
+  }));
+}
 
 export default function useJobsMatched(location, navigate) {
   const { dashboard, dashboardLoading, refreshDashboard } = useDashboard();
@@ -22,6 +43,22 @@ export default function useJobsMatched(location, navigate) {
 
   const [loadingRecalc, setLoadingRecalc] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+
+  const [externalJobs, setExternalJobs] = useState([]);
+  const [showDrawer, setShowDrawer] = useState(false);
+
+  const refreshExternalJobs = useCallback(async () => {
+    try {
+      const jobs = await getExternalJobs();
+      setExternalJobs(formatExternalJobs(jobs));
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshExternalJobs();
+  }, [refreshExternalJobs]);
 
   // FILTER OUT HIDDEN JOBS - wrapped in useMemo to prevent re-creation
   const visibleJobs = useMemo(
@@ -126,10 +163,33 @@ export default function useJobsMatched(location, navigate) {
     }
   }, [visibleJobs]);
 
-  const handleRecalculate = async (formData) => {
+  /**
+   * POSTs current filter preferences to /job/recalculate and syncs jobs + dashboard.
+   */
+  const handleRecalculate = async () => {
+    if (!activeCV?.cv_id || activeCV.cv_text == null) {
+      return;
+    }
+
     setLoadingRecalc(true);
     try {
-      await recalculateJobs(formData);
+      const payload = {
+        cv_id: activeCV.cv_id,
+        cv_text: activeCV.cv_text,
+        job_function: activeCV.job_function || null,
+        job_type: activeCV.job_type || null,
+        location: activeCV.location || null,
+        date_filter: dateFilter || null,
+      };
+
+      const result = await recalculateJobs(payload);
+
+      setData((prev) => ({
+        ...prev,
+        jobs: result.jobs,
+        warning: result.warning ?? prev?.warning,
+      }));
+
       setHasChanges(false);
       await refreshDashboard();
     } catch (err) {
@@ -162,5 +222,9 @@ export default function useJobsMatched(location, navigate) {
     indexOfFirst,
     indexOfLast,
     setData,
+    externalJobs,
+    showDrawer,
+    setShowDrawer,
+    refreshExternalJobs,
   };
 }

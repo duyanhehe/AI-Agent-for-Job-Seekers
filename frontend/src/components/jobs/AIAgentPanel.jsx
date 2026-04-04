@@ -1,108 +1,15 @@
-import { useState, useEffect } from "react";
-import { askQuestion, analyzeJob } from "../services/api";
+import useAIAgentPanel from "../../hooks/jobs/useAIAgentPanel";
 
 function AIAgentPanel({ job, cvText, chatHistory = [] }) {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState("");
-  const [loadingAsk, setLoadingAsk] = useState(false);
-  const [loadingAnalyze, setLoadingAnalyze] = useState(false);
-
-  // Load chat history when job changes
-  useEffect(() => {
-    if (!job) return;
-
-    // Filter chats for this job
-    const jobChats = chatHistory.filter(
-      (c) => String(c.job_id) === String(job.job_id),
-    );
-
-    // Convert DB chats to UI messages
-    const historyMessages = jobChats.flatMap((c) => [
-      {
-        sender: "user",
-        type: "text",
-        text: c.question,
-      },
-      {
-        sender: "ai",
-        type: "text",
-        text: c.answer,
-      },
-    ]);
-
-    setMessages([
-      {
-        sender: "ai",
-        type: "text",
-        text: `I can assist you with:
-
-• Analyzing why this job matches your CV
-• Suggesting skills you should improve
-• Answering questions about this role`,
-      },
-      {
-        sender: "ai",
-        type: "analyze_button",
-      },
-      ...historyMessages, // Append history
-    ]);
-  }, [job, chatHistory]);
-
-  async function handleAnalyze() {
-    setLoadingAnalyze(true);
-
-    const result = await analyzeJob({
-      cv_text: cvText,
-      job_id: job.job_id,
-    });
-
-    const analysis = result.analysis;
-
-    const aiMessage = {
-      sender: "ai",
-      type: "text",
-      text: `
-Key Skills: ${analysis.key_skills?.join(", ")}
-
-Missing Skills: ${analysis.missing_skills?.join(", ")}
-
-${analysis.summary}`,
-    };
-
-    setMessages((prev) => [...prev, aiMessage]);
-
-    setLoadingAnalyze(false);
-  }
-
-  async function handleSend() {
-    if (!input) return;
-
-    const userMessage = {
-      sender: "user",
-      type: "text",
-      text: input,
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setLoadingAsk(true);
-
-    const result = await askQuestion({
-      cv_text: cvText,
-      job_id: job.job_id,
-      question: input,
-    });
-
-    const aiMessage = {
-      sender: "ai",
-      type: "text",
-      text: result.result.answer,
-    };
-
-    setMessages((prev) => [...prev, aiMessage]);
-
-    setLoadingAsk(false);
-  }
+  const {
+    messages,
+    input,
+    setInput,
+    loadingAsk,
+    loadingAnalyze,
+    handleAnalyze,
+    handleSend,
+  } = useAIAgentPanel(job, cvText, chatHistory);
 
   if (!job) {
     return (
