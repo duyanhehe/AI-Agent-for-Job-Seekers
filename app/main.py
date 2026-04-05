@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from app.api.router import router
 from app.core.dependencies import index_manager
 from app.core.database import engine, Base
-from app.models.user import User
 import logging
 
 logging.basicConfig(level=logging.INFO)

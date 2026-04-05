@@ -16,8 +16,10 @@ export default function useProfilePage(dashboard, refreshDashboard) {
     if (!dashboard) {
       refreshDashboard();
     } else {
-      const latest = dashboard.job_history?.[0];
-      if (latest?.profile) setProfile(latest.profile);
+      const primaryEntry = dashboard.job_history?.find(
+        (entry) => entry.is_primary,
+      );
+      if (primaryEntry?.profile) setProfile(primaryEntry.profile);
     }
     // refreshDashboard omitted from deps (unstable ref from context; same as pre-refactor Profile page)
     // eslint-disable-next-line react-hooks/exhaustive-deps
