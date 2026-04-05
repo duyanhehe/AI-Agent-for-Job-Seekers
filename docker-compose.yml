@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  # Nginx load balancer (frontend + API reverse proxy)
+  nginx:
+    image: nginx:latest
+    container_name: ai-job-app-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./nginx/logs:/var/log/nginx
+      - ./frontend/dist:/usr/share/nginx/html:ro  # React build output
+    depends_on:
+      - fastapi1
+      - fastapi2
+      - fastapi3
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  # FastAPI Instance 1
+  fastapi1:
+    build: .
+    container_name: ai-job-app-1
+    environment:
+      - PORT=8001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001
+
+  # FastAPI Instance 2
+  fastapi2:
+    build: .
+    container_name: ai-job-app-2
+    environment:
+      - PORT=8002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    ports:
+      - "8002:8002"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8002
+
+  # FastAPI Instance 3
+  fastapi3:
+    build: .
+    container_name: ai-job-app-3
+    environment:
+      - PORT=8003
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+    ports:
+      - "8003:8003"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - app-network
+    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8003
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-job-app-postgres
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ai-job-app-redis
+    networks:
+      - app-network
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge
