@@ -10,6 +10,7 @@ import Profile from "./pages/profile/Profile";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import PrivacyPolicy from "./pages/legal/Privacy";
 import Interview from "./pages/jobs/Interview";
+import ApplicationHistory from "./pages/jobs/ApplicationHistory";
 
 import { AuthProvider } from "./hooks/auth/AuthContextProvider";
 
@@ -59,6 +60,14 @@ function App() {
           />
 
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route
+            path="/applications"
+            element={
+              <ProtectedRoute>
+                <ApplicationHistory />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/jobs/interview"
             element={

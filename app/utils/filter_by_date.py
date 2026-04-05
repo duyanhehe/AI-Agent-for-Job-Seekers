@@ -1,11 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 
 def filter_by_date(jobs, date_filter):
     if not date_filter:
         return jobs
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     mapping = {
         "24h": timedelta(days=1),

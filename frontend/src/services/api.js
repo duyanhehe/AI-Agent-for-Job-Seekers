@@ -178,3 +178,32 @@ export async function gradeInterview(data) {
   const res = await api.post("/job/interview/grade", data);
   return res.data;
 }
+
+// ================= APPLICATIONS =================
+
+export async function prepareApplication(data) {
+  console.log("[DEBUG API] prepareApplication payload:", data);
+  try {
+    const res = await api.post("/applications/prepare", data);
+    console.log("[DEBUG API] prepareApplication response:", res.data);
+    return res.data;
+  } catch (error) {
+    console.error("[ERROR API] prepareApplication failed:", {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+    });
+    throw error;
+  }
+}
+
+export async function saveApplication(data) {
+  const res = await api.post("/applications/", data);
+  return res.data;
+}
+
+export async function getApplicationHistory() {
+  const res = await api.get("/applications/history");
+  return res.data;
+}

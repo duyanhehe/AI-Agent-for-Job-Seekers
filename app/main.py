@@ -1,10 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from app.api.router import router
 from app.core.dependencies import index_manager
 from app.core.database import engine, Base
 import logging
+import json
 
 logging.basicConfig(level=logging.INFO)
 
@@ -36,6 +39,31 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+# Custom validation error handler
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    print("[ERROR] Validation Error on", request.url)
+    print("[ERROR] Request body:")
+    try:
+        body = await request.body()
+        print(body.decode() if body else "empty body")
+    except:
+        print("(could not read body)")
+
+    print("[ERROR] Validation errors:")
+    for error in exc.errors():
+        print(f"  - {error['loc']}: {error['msg']} (type: {error['type']})")
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "detail": exc.errors(),
+            "body": str(exc).split("\n")[0],
+        },
+    )
+
 
 app.add_middleware(
     CORSMiddleware,

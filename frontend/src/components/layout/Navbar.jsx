@@ -21,7 +21,8 @@ function Navbar() {
             AI Job Seeker
           </Link>
         </div>
-        {location?.pathname?.startsWith("/jobs") && (
+        {(location?.pathname?.startsWith("/jobs") ||
+          location?.pathname?.startsWith("/applications")) && (
           <div className="flex items-center gap-4 ml-6">
             <Link
               to="/jobs?tab=recommended"
@@ -55,7 +56,6 @@ function Navbar() {
             >
               Applied
             </Link>
-
             <Link
               to="/jobs?tab=external"
               className={`px-4 py-1 rounded-full text-sm ${
@@ -65,6 +65,17 @@ function Navbar() {
               }`}
             >
               External
+            </Link>
+
+            <Link
+              to="/applications"
+              className={`px-4 py-1 rounded-full text-sm font-semibold border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 ${
+                location.pathname === "/applications"
+                  ? "bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700"
+                  : "bg-white"
+              }`}
+            >
+              History
             </Link>
           </div>
         )}

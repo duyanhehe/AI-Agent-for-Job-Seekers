@@ -11,6 +11,7 @@ from app.api.routes import (
     jobs,
     lookup,
     profile,
+    applications,
 )
 
 router = APIRouter()
@@ -23,3 +24,4 @@ router.include_router(dashboard.router)
 router.include_router(external_jobs.router)
 router.include_router(profile.router)
 router.include_router(interview.router)
+router.include_router(applications.router, prefix="/applications")

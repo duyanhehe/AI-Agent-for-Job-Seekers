@@ -331,6 +331,51 @@ Return JSON:
 """
         return await self._call_llm(prompt)
 
+    # --------------------------------------------------
+    # Cover Letter generation
+    # --------------------------------------------------
+    async def generate_cover_letter(self, cv, job, tone="engineering"):
+        """Generate a customized cover letter based on CV, job, and tone."""
+        tone_guidance = ""
+        if tone == "engineering":
+            tone_guidance = (
+                "Focus on technical skills, specific tools/frameworks, and problem-solving. "
+                "Keep it professional, concise, and direct."
+            )
+        elif tone == "sales":
+            tone_guidance = (
+                "Focus on achievements, metrics, communication, and persuasive skills. "
+                "Make it outcome-oriented and energetic."
+            )
+        else:
+            tone_guidance = "Keep it balanced and professional."
+
+        prompt = f"""
+{SYSTEM_RULES}
+
+You are writing a professional cover letter for a job application.
+
+STRICT RULES:
+- Do NOT hallucinate information not present in the CV
+- Address the hiring manager
+- Be concise (max 300 words)
+- Adapt the tone: {tone}
+- {tone_guidance}
+
+Candidate CV:
+{cv}
+
+Job:
+{job}
+
+Return JSON:
+
+{{
+  "cover_letter": "string"
+}}
+"""
+        return await self._call_llm(prompt)
+
     async def _call_llm(self, prompt):
         """POST JSON prompt to Ollama and parse JSON from the response body."""
         payload = {

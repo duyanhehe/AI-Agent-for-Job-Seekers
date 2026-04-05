@@ -6,6 +6,7 @@ function Layout({ children }) {
   const location = useLocation();
   const showSidebar =
     location.pathname.startsWith("/jobs") ||
+    location.pathname.startsWith("/applications") ||
     location.pathname.startsWith("/resume") ||
     location.pathname.startsWith("/profile");
   return (

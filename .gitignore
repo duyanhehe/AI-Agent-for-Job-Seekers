@@ -6,6 +6,7 @@
 __pycache__/
 # IDE / Editor
 .vscode/
+.agent/
 # Uploaded documents (CVs, Job Descriptions)
 data/uploads/
 # Vector database persistence
