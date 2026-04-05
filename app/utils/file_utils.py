@@ -1,6 +1,6 @@
 import os
 from fastapi import UploadFile, HTTPException
-from app.config import ALLOWED_EXTENSIONS
+from app.core.config import ALLOWED_EXTENSIONS
 
 
 def validate_file(file: UploadFile):

@@ -5,7 +5,7 @@ from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core.schema import Document
 
 from app.services.jobs.jobs_dataset_loader import load_jobs
-from app.config import CHROMA_DIR
+from app.core.config import CHROMA_DIR
 from app.utils.filter_by_date import filter_by_date
 
 

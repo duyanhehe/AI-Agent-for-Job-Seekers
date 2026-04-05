@@ -5,7 +5,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from app.config import UPLOAD_DIR
+from app.core.config import UPLOAD_DIR
 from app.core.dependencies import (
     get_current_user,
     get_db,

@@ -4,7 +4,7 @@ from passlib.context import CryptContext
 
 from app.models.user import User
 from app.core.redis import redis_client
-from app.config import SESSION_EXPIRE_SECONDS
+from app.core.config import SESSION_EXPIRE_SECONDS
 
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
