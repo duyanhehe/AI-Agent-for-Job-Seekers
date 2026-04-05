@@ -4,12 +4,14 @@ from llama_index.core import VectorStoreIndex, Settings, StorageContext
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core.schema import Document
 
-from app.services.jobs_dataset_loader import load_jobs
+from app.services.jobs.jobs_dataset_loader import load_jobs
 from app.config import CHROMA_DIR
 from app.utils.filter_by_date import filter_by_date
 
 
 class IndexManager:
+    """Chroma-backed job index: load dataset, embed, retrieve, and score matches."""
+
     def __init__(self):
 
         Settings.embed_model = HuggingFaceEmbedding(

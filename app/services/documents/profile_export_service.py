@@ -9,6 +9,7 @@ from app.models.user_profiles import UserProfile
 
 
 def export_profile_docx_service(user_id: int, db: Session):
+    """Build a DOCX from the user's primary CV profile and return a streaming response."""
     # GET PRIMARY CV
     cv = (
         db.query(CVDocuments)

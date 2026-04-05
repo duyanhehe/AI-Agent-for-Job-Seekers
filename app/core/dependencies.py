@@ -1,9 +1,9 @@
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from app.services.index_manager import IndexManager
-from app.services.auth_service import AuthService
-from app.services.document_reader import DocumentReader
-from app.services.llm_service import LLMService
+from app.services.jobs.index_manager import IndexManager
+from app.services.auth.auth_service import AuthService
+from app.services.documents.document_reader import DocumentReader
+from app.services.llm.llm_service import LLMService
 from app.core.database import SessionLocal
 from app.models.user import User
 

@@ -3,7 +3,7 @@ from datasets import load_dataset
 
 
 def parse_list(raw):
-
+    """Normalize a skills field from the dataset into a list of lowercase strings."""
     if raw is None:
         return []
 
@@ -27,7 +27,7 @@ def parse_list(raw):
 
 
 def parse_type_skills(raw):
-
+    """Normalize type-skills field into a dict mapping category to skill lists."""
     if raw is None:
         return {}
 
@@ -51,7 +51,7 @@ def parse_type_skills(raw):
 
 
 def load_jobs():
-
+    """Load a limited slice of the public jobs dataset into normalized dict rows."""
     dataset = load_dataset("lukebarousse/data_jobs", split="train[:5000]")
 
     jobs = []

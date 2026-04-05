@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from app.api.controller import router
+from app.api.router import router
 from app.core.dependencies import index_manager
 from app.core.database import engine, Base
 from app.models.user import User

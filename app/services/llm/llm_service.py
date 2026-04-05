@@ -22,11 +22,15 @@ Always respond strictly in JSON.
 
 
 class LLMService:
+    """Calls a local Ollama-compatible API for CV, job, and interview workflows."""
+
     def __init__(self, index_manager):
+        """Store the shared ``index_manager`` used for optional RAG context."""
         self.base_url = "http://localhost:11434/api/generate"
         self.index_manager = index_manager
 
     def _get_rag_context(self, query):
+        """Build truncated RAG context for a query via the job index."""
         context = self.index_manager.build_rag_context(query)
         return context[:2000]  # Limit context size for LLM input
 
@@ -34,6 +38,7 @@ class LLMService:
     # Match CV to job
     # --------------------------------------------------
     async def match_cv_to_job(self, cv, job, rag_context=None):
+        """Score and explain fit between CV text and a job record."""
         if not rag_context:
             rag_context = self._get_rag_context(
                 query=f"{job.get('job_role', '')} {job.get('job_function', '')} skills requirements"
@@ -70,6 +75,7 @@ Return JSON:
     # Extracting structured profile from CV
     # --------------------------------------------------
     async def extract_profile(self, cv_text, basic_info=None):
+        """Parse CV text into structured profile JSON (optionally with parser hints)."""
         prompt = f"""
 Extract structured user profile from this CV.
 
@@ -124,6 +130,7 @@ CV:
     # Answering job-related questions
     # --------------------------------------------------
     async def answer_job_question(self, cv, job, question, rag_context=None):
+        """Answer a user question about a job using CV and optional RAG context."""
         if not rag_context:
             rag_context = self._get_rag_context(
                 query=f"{job.get('job_role', '')} {question}"
@@ -160,6 +167,7 @@ Return EXACTLY this format:
     # Job extraction from description
     # --------------------------------------------------
     async def extract_external_job(self, description: str):
+        """Extract structured fields from a free-text job description."""
         prompt = f"""
 Extract structured job information from this job description.
 
@@ -213,6 +221,7 @@ Job Description:
     # Interview generation
     # --------------------------------------------------
     async def generate_interview(self, cv, job, rag_context=None):
+        """Generate mock interview questions and meta-evaluation for a job."""
         if not rag_context:
             rag_context = self._get_rag_context(
                 query=f"{job.get('job_role', '')} interview questions skills"
@@ -274,6 +283,7 @@ Return JSON:
     # Interview grading
     # --------------------------------------------------
     async def grade_interview(self, cv, job, answers, rag_context=None):
+        """Score and comment on a list of interview answers."""
         if not rag_context:
             rag_context = self._get_rag_context(
                 query=f"{job.get('job_role', '')} expected answers skills evaluation"
@@ -322,6 +332,7 @@ Return JSON:
         return await self._call_llm(prompt)
 
     async def _call_llm(self, prompt):
+        """POST JSON prompt to Ollama and parse JSON from the response body."""
         payload = {
             "model": "llama3.2:3b",
             "prompt": prompt,
