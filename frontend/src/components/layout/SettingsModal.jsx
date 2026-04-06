@@ -1,10 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../hooks/auth/useAuth";
+import { useAlertSettings } from "../../hooks/common/useAlertSettings";
 import { resetPassword, deleteAccount } from "../../services/api";
 
 function SettingsModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState("security");
   const { user, logout } = useAuth();
+  const { settings, loading, saving, saveSettings } = useAlertSettings();
+  const [keywordsInput, setKeywordsInput] = useState("");
+
+  // Sync keywords input with settings when settings load
+  useEffect(() => {
+    setKeywordsInput(settings.keywords.join(", "));
+  }, [settings.keywords]);
 
   if (!isOpen) return null;
 
@@ -186,11 +194,117 @@ function SettingsModal({ isOpen, onClose }) {
           )}
 
           {activeTab === "alerts" && (
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Job Alerts</h2>
-              <p className="text-gray-500">
-                (Placeholder for job alerts settings)
-              </p>
+            <div className="flex flex-col gap-6">
+              <h2 className="text-xl font-semibold">Job Alerts</h2>
+
+              {loading ? (
+                <p className="text-gray-500">Loading settings...</p>
+              ) : (
+                <>
+                  {/* Enable */}
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={settings.enabled}
+                      onChange={(e) => {
+                        const newSettings = {
+                          ...settings,
+                          enabled: e.target.checked,
+                        };
+                        saveSettings(newSettings);
+                      }}
+                    />
+                    Enable Job Alerts
+                  </label>
+
+                  {/* CV selection */}
+                  <div>
+                    <p className="font-medium">CV for matching</p>
+                    <select
+                      className="mt-1 w-full border rounded px-2 py-1"
+                      value={settings.cv_id || ""}
+                      onChange={(e) => {
+                        const newSettings = {
+                          ...settings,
+                          cv_id: e.target.value
+                            ? parseInt(e.target.value)
+                            : null,
+                        };
+                        saveSettings(newSettings);
+                      }}
+                    >
+                      <option value="">My Primary CV</option>
+                    </select>
+                  </div>
+
+                  {/* Match threshold */}
+                  <div>
+                    <p className="font-medium">Match quality</p>
+                    <select
+                      className="mt-1 w-full border rounded px-2 py-1"
+                      value={settings.match_quality_threshold}
+                      onChange={(e) => {
+                        const newSettings = {
+                          ...settings,
+                          match_quality_threshold: parseFloat(e.target.value),
+                        };
+                        saveSettings(newSettings);
+                      }}
+                    >
+                      <option value={80}>80%+ (High match)</option>
+                      <option value={60}>60%+ (Recommended)</option>
+                      <option value={0}>All</option>
+                    </select>
+                  </div>
+
+                  {/* Frequency */}
+                  <div>
+                    <p className="font-medium">Notification frequency</p>
+                    <select
+                      className="mt-1 w-full border rounded px-2 py-1"
+                      value={settings.notification_frequency}
+                      onChange={(e) => {
+                        const newSettings = {
+                          ...settings,
+                          notification_frequency: e.target.value,
+                        };
+                        saveSettings(newSettings);
+                      }}
+                    >
+                      <option value="instant">Instant</option>
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                    </select>
+                  </div>
+
+                  {/* Keywords */}
+                  <div>
+                    <p className="font-medium">Keywords</p>
+                    <p className="text-gray-500 text-sm mb-2">
+                      Comma-separated values (e.g., React, AI, Backend)
+                    </p>
+                    <input
+                      className="mt-1 w-full border rounded px-2 py-1"
+                      placeholder="React, AI, Backend..."
+                      value={keywordsInput}
+                      onChange={(e) => setKeywordsInput(e.target.value)}
+                      onBlur={() => {
+                        const keywords = keywordsInput
+                          .split(",")
+                          .map((k) => k.trim())
+                          .filter((k) => k);
+                        const newSettings = {
+                          ...settings,
+                          keywords,
+                        };
+                        saveSettings(newSettings);
+                      }}
+                    />
+                  </div>
+
+                  {saving && <p className="text-blue-600 text-sm">Saving...</p>}
+                </>
+              )}
             </div>
           )}
         </div>

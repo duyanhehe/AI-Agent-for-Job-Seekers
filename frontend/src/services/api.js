@@ -207,3 +207,32 @@ export async function getApplicationHistory() {
   const res = await api.get("/applications/history");
   return res.data;
 }
+
+// ================= NOTIFICATIONS =================
+
+export async function fetchNotifications() {
+  const res = await api.get("/notifications");
+  return res.data;
+}
+
+export async function markNotificationAsRead(notificationId) {
+  const res = await api.put(`/notifications/${notificationId}/read`);
+  return res.data;
+}
+
+export async function deleteNotificationAPI(notificationId) {
+  const res = await api.delete(`/notifications/${notificationId}`);
+  return res.data;
+}
+
+// ================= JOB ALERT SETTINGS =================
+
+export async function getAlertSettings() {
+  const res = await api.get("/alert-settings");
+  return res.data;
+}
+
+export async function updateAlertSettings(settings) {
+  const res = await api.put("/alert-settings", settings);
+  return res.data;
+}

@@ -12,6 +12,8 @@ from app.api.routes import (
     lookup,
     profile,
     applications,
+    notifications,
+    alert_settings,
 )
 
 router = APIRouter()
@@ -25,3 +27,5 @@ router.include_router(external_jobs.router)
 router.include_router(profile.router)
 router.include_router(interview.router)
 router.include_router(applications.router, prefix="/applications")
+router.include_router(notifications.router)
+router.include_router(alert_settings.router)
