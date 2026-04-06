@@ -11,8 +11,20 @@ const api = axios.create({
 // ================= AUTH =================
 
 export async function signup(data) {
-  const res = await api.post("/auth/signup", data);
-  return res.data;
+  try {
+    const res = await api.post("/auth/signup", data);
+    return {
+      ok: true,
+      status: res.status,
+      data: res.data,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      status: err.response?.status,
+      data: err.response?.data,
+    };
+  }
 }
 
 export async function login(data) {

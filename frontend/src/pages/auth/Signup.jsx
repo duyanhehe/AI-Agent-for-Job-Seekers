@@ -59,7 +59,7 @@ function Signup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-500 text-white py-2 rounded flex justify-center"
+            className="w-full bg-green-500 text-white py-2 rounded flex justify-center"
           >
             {loading ? <Spinner /> : "Sign Up"}
           </button>

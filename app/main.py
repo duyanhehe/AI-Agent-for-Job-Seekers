@@ -56,11 +56,23 @@ async def validation_exception_handler(request, exc):
     for error in exc.errors():
         print(f"  - {error['loc']}: {error['msg']} (type: {error['type']})")
 
+    # Normalize errors to ensure JSON serializability
+    normalized_errors = []
+    for error in exc.errors():
+        normalized_errors.append(
+            {
+                "loc": list(error.get("loc", [])),
+                "msg": str(error.get("msg", "")),
+                "type": str(error.get("type", "")),
+            }
+        )
+
     return JSONResponse(
         status_code=422,
         content={
-            "detail": exc.errors(),
-            "body": str(exc).split("\n")[0],
+            "detail": normalized_errors[0]["msg"]
+            if normalized_errors
+            else "Validation error",
         },
     )
 
