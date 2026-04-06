@@ -25,6 +25,11 @@ function AIAgentPanel({ job, cvText, chatHistory = [] }) {
       {/* HEADER */}
       <div className="p-4 border-b">
         <h2 className="font-bold text-lg">AI Career Assistant</h2>
+        {job && (
+          <p className="text-sm text-gray-600 mt-1">
+            {job.job_role} {job.company && `at ${job.company}`}
+          </p>
+        )}
       </div>
 
       {/* CHAT AREA */}

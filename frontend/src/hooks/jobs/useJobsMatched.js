@@ -156,13 +156,6 @@ export default function useJobsMatched(location, navigate) {
     loadDropdowns();
   }, []);
 
-  // AUTO SELECT JOB
-  useEffect(() => {
-    if (visibleJobs.length > 0) {
-      setSelectedJob(visibleJobs[0]);
-    }
-  }, [visibleJobs]);
-
   /**
    * POSTs current filter preferences to /job/recalculate and syncs jobs + dashboard.
    */

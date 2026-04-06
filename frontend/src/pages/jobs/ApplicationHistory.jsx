@@ -84,7 +84,7 @@ function ApplicationHistory() {
             <Spinner />
           </div>
         ) : applications.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-dashed border-gray-300 p-12 text-center">
+          <div className="bg-white rounded-lg p-5 shadow text-center">
             <div className="bg-gray-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -119,7 +119,7 @@ function ApplicationHistory() {
             {applications.map((app) => (
               <div
                 key={app.id}
-                className="bg-white rounded-2xl shadow-sm border hover:shadow-md transition p-6"
+                className="bg-white rounded-lg p-5 shadow hover:bg-gray-50 cursor-pointer transition"
               >
                 <div className="flex flex-col md:flex-row justify-between gap-4">
                   <div className="flex-1">
