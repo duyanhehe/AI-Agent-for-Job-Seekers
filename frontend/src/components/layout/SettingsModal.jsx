@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { useAlertSettings } from "../../hooks/common/useAlertSettings";
 import { resetPassword, deleteAccount } from "../../services/api";
@@ -99,7 +100,13 @@ function SettingsModal({ isOpen, onClose }) {
             </a>
 
             <button
-              onClick={logout}
+              onClick={async () => {
+                await logout();
+                toast.success("Logged out successfully");
+                setTimeout(() => {
+                  window.location.href = "/";
+                }, 800);
+              }}
               className="flex items-center gap-2 px-3 py-2 rounded hover:bg-red-100 text-left text-red-600"
             >
               <svg
@@ -153,9 +160,9 @@ function SettingsModal({ isOpen, onClose }) {
                     const res = await resetPassword(oldPass, newPass);
 
                     if (res?.detail) {
-                      alert(res.detail);
+                      toast.error(res.detail);
                     } else {
-                      alert("Password updated. Please log in again.");
+                      toast.success("Password updated. Please log in again.");
                       await logout();
                       window.location.href = "/login";
                     }
@@ -182,8 +189,20 @@ function SettingsModal({ isOpen, onClose }) {
                     );
                     if (!confirmDelete) return;
 
-                    await deleteAccount();
-                    window.location.href = "/";
+                    try {
+                      await deleteAccount();
+
+                      toast.success("Account deleted successfully");
+
+                      setTimeout(() => {
+                        window.location.href = "/";
+                      }, 1000);
+                    } catch (err) {
+                      toast.error(
+                        err?.response?.data?.detail ||
+                          "Failed to delete account",
+                      );
+                    }
                   }}
                   className="px-4 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
                 >

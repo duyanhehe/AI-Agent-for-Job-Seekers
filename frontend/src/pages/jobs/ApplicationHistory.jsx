@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import Layout from "../../components/layout/Layout";
 import { getApplicationHistory, saveApplication } from "../../services/api";
 import Spinner from "../../components/layout/Spinner";
@@ -48,7 +49,7 @@ function ApplicationHistory() {
         tone: app.tone,
       });
 
-      alert("Application submitted successfully!");
+      toast.success("Application submitted successfully!");
       await fetchHistory();
     } catch (err) {
       console.error("Failed to submit application:", err);
@@ -254,7 +255,7 @@ function ApplicationHistory() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(selectedCoverLetter);
-                  alert("Cover letter copied to clipboard!");
+                  toast.success("Cover letter copied to clipboard!");
                 }}
                 className="flex-1 py-2 px-4 rounded-lg border border-gray-300 font-semibold text-gray-700 hover:bg-gray-100 transition"
               >

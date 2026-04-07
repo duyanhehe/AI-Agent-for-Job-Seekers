@@ -1,5 +1,6 @@
 import useExternalJobForm from "../../hooks/jobs/useExternalJobForm";
 import { saveExternalJob } from "../../services/api";
+import { toast } from "react-toastify";
 
 function ExternalJobDrawer({ open, onClose, onSave }) {
   const { form, handleChange, resetForm } = useExternalJobForm();
@@ -9,7 +10,7 @@ function ExternalJobDrawer({ open, onClose, onSave }) {
    */
   const handleSubmit = async () => {
     if (!form.title || !form.company || !form.description) {
-      alert("Please fill required fields");
+      toast.error("Please fill required fields");
       return;
     }
 
@@ -27,7 +28,7 @@ function ExternalJobDrawer({ open, onClose, onSave }) {
       onClose();
     } catch (err) {
       console.error(err);
-      alert("Failed to save job");
+      toast.error("Failed to save job");
     }
   };
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "react-toastify";
 import { saveJobAction } from "../../services/api";
 
 /**
@@ -37,12 +38,12 @@ export default function useJobCard(job, onStatusChange) {
           onStatusChange(job.job_id, newStatus);
         }
 
-        alert(`Saved as ${newStatus}`);
+        toast.success(`Saved as ${newStatus}`);
         setShowReport(false);
         setSelectedReason(null);
       } catch (err) {
         console.error(err);
-        alert("Action failed");
+        toast.error("Action failed");
       }
     },
     [job.job_id, onStatusChange],

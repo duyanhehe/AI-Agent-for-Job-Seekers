@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { signup, login } from "../../services/api";
+import { toast } from "react-toastify";
+import { signup, logout as logoutAPI } from "../../services/api";
 import { useAuth } from "../../hooks/auth/useAuth";
 import Layout from "../../components/layout/Layout";
 import Spinner from "../../components/layout/Spinner";
@@ -8,18 +9,25 @@ import useCredentials from "../../hooks/auth/useCredentials";
 
 function Signup() {
   const navigate = useNavigate();
+  const { setIsLoggedIn, setUser } = useAuth();
 
   const { email, password, setEmail, setPassword } = useCredentials();
 
-  const { fetchDashboard, fetchUser, setIsLoggedIn } = useAuth();
-
   const { loading, error, handleSubmit } = useAuthForm(signup, async () => {
-    await login({ email, password });
+    // Logout to clear the session created by signup
+    try {
+      await logoutAPI();
+      // Clear the auth state
+      setIsLoggedIn(false);
+      setUser(null);
+    } catch (err) {
+      console.error("Logout after signup failed:", err);
+    }
 
-    await Promise.all([fetchUser(), fetchDashboard()]);
-    setIsLoggedIn(true);
-
-    navigate("/analyze");
+    toast.success("Account Created! Please log in.");
+    setTimeout(() => {
+      navigate("/login");
+    }, 800);
   });
 
   function onSubmit(e) {

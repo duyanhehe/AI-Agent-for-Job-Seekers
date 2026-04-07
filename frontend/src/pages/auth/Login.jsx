@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { login } from "../../services/api";
 import { useAuth } from "../../hooks/auth/useAuth";
 import Layout from "../../components/layout/Layout";
@@ -13,25 +14,28 @@ function Login() {
   const { email, password, setEmail, setPassword } = useCredentials();
 
   const { loading, error, handleSubmit } = useAuthForm(login, async () => {
+    toast.success("Login successful");
+
     // Fetch dashboard and update isLoggedIn in context
-    await Promise.all([fetchUser(), fetchDashboard()]);
+    const [, dashboard] = await Promise.all([fetchUser(), fetchDashboard()]);
     setIsLoggedIn(true);
 
-    const dashboard = await fetchDashboard();
-
-    // Now isLoggedIn is true in context, safe to navigate
-    if (dashboard?.job_history?.length > 0) {
-      navigate("/jobs", {
-        state: {
-          cv_text: dashboard.job_history[0].cv_text || "",
-          skills: [],
-          warning: "",
-          jobs: dashboard.job_history[0].jobs,
-        },
-      });
-    } else {
-      navigate("/analyze");
-    }
+    // Navigate with slight delay to ensure toast displays
+    setTimeout(() => {
+      // Now isLoggedIn is true in context, safe to navigate
+      if (dashboard?.job_history?.length > 0) {
+        navigate("/jobs", {
+          state: {
+            cv_text: dashboard.job_history[0].cv_text || "",
+            skills: [],
+            warning: "",
+            jobs: dashboard.job_history[0].jobs,
+          },
+        });
+      } else {
+        navigate("/analyze");
+      }
+    }, 800);
   });
 
   function onSubmit(e) {

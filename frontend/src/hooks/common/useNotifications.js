@@ -5,7 +5,7 @@ import {
   deleteNotificationAPI,
 } from "../../services/api";
 
-export function useNotifications(pollingIntervalMs = 60000) {
+export function useNotifications(pollingIntervalMs = 300000) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);

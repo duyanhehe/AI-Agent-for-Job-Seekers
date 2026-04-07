@@ -1,6 +1,6 @@
 """Authentication and account lifecycle endpoints."""
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import auth_service, get_current_user, get_db
@@ -8,7 +8,10 @@ from app.models.chat_history import ChatHistory
 from app.models.cv_documents import CVDocuments
 from app.models.external_jobs import ExternalJob
 from app.models.job_actions import JobAction
+from app.models.job_alert_settings import JobAlertSettings
+from app.models.job_applications import JobApplication
 from app.models.job_matched_history import JobMatchedHistory
+from app.models.notification import Notification
 from app.models.user_profiles import UserProfile
 from app.schemas.auth import LoginRequest, SignupRequest
 
@@ -73,30 +76,66 @@ def reset_password(
     db: Session = Depends(get_db),
 ):
     """Update password after verifying the current password."""
-    if not auth_service.verify_password(old_password, user.password_hash):
-        raise HTTPException(status_code=400, detail="Incorrect old password")
+    try:
+        if not auth_service.verify_password(old_password, user.password_hash):
+            raise HTTPException(status_code=400, detail="Incorrect old password")
 
-    user.password_hash = auth_service.hash_password(new_password)
-    db.commit()
-    db.refresh(user)
+        if len(new_password) < 8:
+            raise HTTPException(
+                status_code=400, detail="Password must be at least 8 characters"
+            )
 
-    return {"message": "Password updated"}
+        user.password_hash = auth_service.hash_password(new_password)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        return {"message": "Password updated successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update password")
 
 
 @router.delete("/auth/delete-account")
 def delete_account(
+    request: Request,
+    response: Response,
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Delete the user and all associated application data."""
-    db.query(ExternalJob).filter_by(user_id=user.id).delete()
-    db.query(JobMatchedHistory).filter_by(user_id=user.id).delete()
-    db.query(ChatHistory).filter_by(user_id=user.id).delete()
-    db.query(JobAction).filter_by(user_id=user.id).delete()
-    db.query(UserProfile).filter_by(user_id=user.id).delete()
-    db.query(CVDocuments).filter_by(user_id=user.id).delete()
+    try:
+        user_id = user.id
 
-    db.delete(user)
-    db.commit()
+        # Delete all user-related data in order
+        # Tables depending on CV
+        db.query(JobMatchedHistory).filter(
+            JobMatchedHistory.user_id == user_id
+        ).delete()
+        db.query(UserProfile).filter(UserProfile.user_id == user_id).delete()
+        # Tables depending ONLY on user
+        db.query(ExternalJob).filter(ExternalJob.user_id == user_id).delete()
+        db.query(ChatHistory).filter(ChatHistory.user_id == user_id).delete()
+        db.query(JobAction).filter(JobAction.user_id == user_id).delete()
+        db.query(JobApplication).filter(JobApplication.user_id == user_id).delete()
+        db.query(Notification).filter(Notification.user_id == user_id).delete()
+        db.query(JobAlertSettings).filter(JobAlertSettings.user_id == user_id).delete()
+        # Then CVs
+        db.query(CVDocuments).filter(CVDocuments.user_id == user_id).delete()
+        # Delete the user account
+        db.delete(user)
+        db.commit()
 
-    return {"message": "Account deleted"}
+        # Clear the session cookie
+        session_id = request.cookies.get("session_id")
+        if session_id:
+            auth_service.delete_session(session_id)
+        response.delete_cookie("session_id")
+
+        return {"message": "Account deleted successfully"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to delete account")

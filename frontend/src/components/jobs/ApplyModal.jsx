@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { prepareApplication, saveApplication } from "../../services/api";
 import { useDashboard } from "../../hooks/auth/useAuth";
 import Spinner from "../layout/Spinner";
+import { toast } from "react-toastify";
 
 function ApplyModal({ job, isOpen, onClose }) {
   const [loading, setLoading] = useState(true);
@@ -109,18 +110,18 @@ function ApplyModal({ job, isOpen, onClose }) {
         tone: tone,
       });
       if (status === "submitted") {
-        alert("Application submitted successfully!");
+        toast.success("Application submitted successfully!");
         // If external link, open it
         const url = job.url || job.job_url;
         if (url) {
           window.open(url, "_blank");
         }
       } else {
-        alert("Draft saved!");
+        toast.success("Draft saved!");
       }
       onClose();
     } catch (err) {
-      alert("Failed to save application");
+      toast.error("Failed to save application");
     } finally {
       setSubmitting(false);
     }
