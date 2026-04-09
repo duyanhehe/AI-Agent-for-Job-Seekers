@@ -1,7 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
-import json
 
 from app.core.dependencies import (
     get_current_user,
@@ -12,6 +11,7 @@ from app.core.dependencies import (
 from app.models.job_applications import JobApplication
 from app.models.cv_documents import CVDocuments
 from app.models.user_profiles import UserProfile
+from app.models.llm_function_usage import LLMFunctionUsage
 from app.schemas.application import (
     ApplicationPrepareRequest,
     ApplicationCreateRequest,
@@ -69,7 +69,15 @@ async def prepare_application(
 
         # Generate Cover Letter
         rate_limit.check_and_consume(user.id, "generate_cover_letter", weight=2)
-        
+
+        # Log LLM function usage
+        db.add(
+            LLMFunctionUsage(
+                user_id=user.id, function_name="Generate Cover Letter", credits_spent=2
+            )
+        )
+        db.flush()
+
         job_details = {
             "title": req.job_title,
             "company": req.company,

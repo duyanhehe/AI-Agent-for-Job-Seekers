@@ -18,6 +18,7 @@ from app.models.chat_history import ChatHistory
 from app.models.cv_documents import CVDocuments
 from app.models.job_matched_history import JobMatchedHistory
 from app.models.user_profiles import UserProfile
+from app.models.llm_function_usage import LLMFunctionUsage
 from app.schemas.job_preference import JobPreference
 from app.services.cache.cache_service import (
     cache_delete_pattern,
@@ -105,7 +106,15 @@ async def upload_cv(
     if not profile:
         # Check and consume credits
         rate_limit.check_and_consume(user.id, "extract_profile", weight=1)
-        
+
+        # Log LLM function usage
+        db.add(
+            LLMFunctionUsage(
+                user_id=user.id, function_name="Extract Profile", credits_spent=1
+            )
+        )
+        db.flush()
+
         profile = await llm_service.extract_profile(text, basic_info)
         cache_set(profile_cache_key, profile, ttl=3600)
 

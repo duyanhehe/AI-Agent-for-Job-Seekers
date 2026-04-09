@@ -8,7 +8,8 @@ function Layout({ children }) {
     location.pathname.startsWith("/jobs") ||
     location.pathname.startsWith("/applications") ||
     location.pathname.startsWith("/resume") ||
-    location.pathname.startsWith("/profile");
+    location.pathname.startsWith("/profile") ||
+    location.pathname.startsWith("/admin");
   return (
     <div className="flex flex-col h-screen">
       {/* TOP NAVBAR */}

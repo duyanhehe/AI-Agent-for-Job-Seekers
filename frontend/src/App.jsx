@@ -9,6 +9,9 @@ import CvAnalyzer from "./pages/resume/CvAnalyzer";
 import JobsMatched from "./pages/jobs/JobsMatched";
 import Resume from "./pages/resume/Resume";
 import Profile from "./pages/profile/Profile";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminUsage from "./pages/admin/AdminUsage";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import PrivacyPolicy from "./pages/legal/Privacy";
 import Interview from "./pages/jobs/Interview";
@@ -75,6 +78,32 @@ function App() {
             element={
               <ProtectedRoute>
                 <Interview />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ADMIN ROUTES */}
+          <Route
+            path="/admin/stats"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminUsers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/usage"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminUsage />
               </ProtectedRoute>
             }
           />

@@ -253,3 +253,20 @@ export async function updateAlertSettings(settings) {
   const res = await api.put("/alert-settings", settings);
   return res.data;
 }
+
+// ================= ADMIN =================
+
+export async function getAdminStats() {
+  const res = await api.get("/admin/stats");
+  return res.data;
+}
+
+export async function getAdminUsers(skip = 0, limit = 100) {
+  const res = await api.get(`/admin/users?skip=${skip}&limit=${limit}`);
+  return res.data;
+}
+
+export async function getAdminUsage(sortBy = "most_used") {
+  const res = await api.get(`/admin/usage?sort_by=${sortBy}`);
+  return res.data;
+}

@@ -5,7 +5,8 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from app.api.router import router
 from app.core.dependencies import index_manager
-from app.core.database import engine, Base
+from app.core.database import engine, Base, SessionLocal
+from app.core.init_admin import sync_admin_account
 import logging
 import json
 
@@ -26,6 +27,15 @@ async def lifespan(app: FastAPI):
     # Create DB tables
     Base.metadata.create_all(bind=engine)
     print("Database tables created")
+
+    # Create/Sync admin account
+    db = SessionLocal()
+    try:
+        sync_admin_account(db)
+        print("Admin account synced")
+    finally:
+        db.close()
+
     # Initialize job index
     index_manager.indexJobs()
     print("Job index initialized")

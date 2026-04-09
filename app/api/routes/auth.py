@@ -3,7 +3,12 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import auth_service, get_current_user, get_db, get_rate_limit_service
+from app.core.dependencies import (
+    auth_service,
+    get_current_user,
+    get_db,
+    get_rate_limit_service,
+)
 from app.models.chat_history import ChatHistory
 from app.models.cv_documents import CVDocuments
 from app.models.external_jobs import ExternalJob
@@ -61,10 +66,11 @@ def logout(request: Request, response: Response):
 
 @router.get("/auth/me")
 def get_me(user=Depends(get_current_user)):
-    """Return the authenticated user's id and email."""
+    """Return the authenticated user's id, email, and role."""
     return {
         "id": user.id,
         "email": user.email,
+        "role": user.role,
     }
 
 
@@ -143,8 +149,7 @@ def delete_account(
 
 @router.get("/auth/credits")
 def get_credits(
-    user=Depends(get_current_user), 
-    rate_limit=Depends(get_rate_limit_service)
+    user=Depends(get_current_user), rate_limit=Depends(get_rate_limit_service)
 ):
     """Return current remaining credits for the authenticated user."""
     remaining = rate_limit.get_remaining_credits(user.id)

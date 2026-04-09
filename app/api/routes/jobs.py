@@ -13,6 +13,7 @@ from app.core.dependencies import (
 from app.models.chat_history import ChatHistory
 from app.models.job_actions import JobAction
 from app.models.job_matched_history import JobMatchedHistory
+from app.models.llm_function_usage import LLMFunctionUsage
 from app.schemas.job_analysis import JobAnalysisRequest
 from app.schemas.job_question import JobQuestionRequest
 from app.schemas.job_recalculate import JobRecalculateRequest
@@ -28,6 +29,7 @@ async def recalculate_jobs(
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
     llm_service=Depends(get_llm_service),
+    rate_limit=Depends(get_rate_limit_service),
 ):
     """Re-run matching for a CV with new filters; refresh profile cache if needed."""
     text = data.cv_text
@@ -37,6 +39,15 @@ async def recalculate_jobs(
 
     if not profile:
         rate_limit.check_and_consume(user.id, "extract_profile", weight=1)
+
+        # Log LLM function usage
+        db.add(
+            LLMFunctionUsage(
+                user_id=user.id, function_name="Extract Profile", credits_spent=1
+            )
+        )
+        db.flush()
+
         profile = await llm_service.extract_profile(text)
         cache_set(profile_cache_key, profile, ttl=3600)
 
@@ -92,6 +103,7 @@ async def recalculate_jobs(
 async def analyze_job(
     data: JobAnalysisRequest,
     user=Depends(get_current_user),
+    db: Session = Depends(get_db),
     llm_service=Depends(get_llm_service),
     rate_limit=Depends(get_rate_limit_service),
 ):
@@ -113,6 +125,14 @@ async def analyze_job(
     # Since LLMService does the internal caching, we can't easily skip consumption here.
     # But for match_cv_to_job, it's safer to just consume 1 credit.
     rate_limit.check_and_consume(user.id, "match_cv_to_job", weight=1)
+
+    # Log LLM function usage
+    db.add(
+        LLMFunctionUsage(
+            user_id=user.id, function_name="Match CV To Job", credits_spent=1
+        )
+    )
+    db.flush()
 
     analysis = await llm_service.match_cv_to_job(
         data.cv_text, job, rag_context=rag_context
@@ -142,6 +162,15 @@ async def ask_job_question(
         cache_set(rag_cache_key, rag_context, ttl=3600)
 
     rate_limit.check_and_consume(user.id, "answer_job_question", weight=1)
+
+    # Log LLM function usage
+    db.add(
+        LLMFunctionUsage(
+            user_id=user.id, function_name="Answer Job Question", credits_spent=1
+        )
+    )
+    db.flush()
+
     answer = await llm_service.answer_job_question(
         data.cv_text, job, data.question, rag_context=rag_context
     )

@@ -45,6 +45,12 @@ def get_current_user(
     return user
 
 
+# Requires admin role
+def require_admin(user):
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+
 # Service dependencies
 def get_reader():
     return DocumentReader()

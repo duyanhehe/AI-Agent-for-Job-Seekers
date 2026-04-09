@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { getDashboard, getMe, logout as logoutAPI, getCredits } from "../../services/api";
+import {
+  getDashboard,
+  getMe,
+  logout as logoutAPI,
+  getCredits,
+} from "../../services/api";
 import { AuthContext } from "./AuthContext";
 
 export function AuthProvider({ children }) {
@@ -19,7 +24,8 @@ export function AuthProvider({ children }) {
       return data;
     } catch (err) {
       console.error("Failed to fetch dashboard:", err);
-      throw err;
+      // Don't throw - just set dashboard to null
+      setDashboard(null);
     } finally {
       setDashboardLoading(false);
     }
@@ -50,10 +56,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function initAuth() {
       try {
-        // run both in parallel
-        await Promise.all([fetchUser(), fetchDashboard()]);
+        // Fetch user first - this is critical for auth
+        await fetchUser();
+        // Fetch dashboard - non-critical, can fail for some users like admins
+        await fetchDashboard();
         setIsLoggedIn(true);
-      } catch {
+      } catch (userError) {
+        console.error("Authentication check failed:", userError);
         setIsLoggedIn(false);
         setUser(null);
         setDashboard(null);

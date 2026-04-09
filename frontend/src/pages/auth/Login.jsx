@@ -16,14 +16,21 @@ function Login() {
   const { loading, error, handleSubmit } = useAuthForm(login, async () => {
     toast.success("Login successful");
 
-    // Fetch dashboard and update isLoggedIn in context
-    const [, dashboard] = await Promise.all([fetchUser(), fetchDashboard()]);
+    // Fetch user and dashboard, then check role
+    const [fetchedUser, dashboard] = await Promise.all([
+      fetchUser(),
+      fetchDashboard(),
+    ]);
     setIsLoggedIn(true);
 
     // Navigate with slight delay to ensure toast displays
     setTimeout(() => {
-      // Now isLoggedIn is true in context, safe to navigate
-      if (dashboard?.job_history?.length > 0) {
+      // Check if admin - redirect to admin dashboard
+      if (fetchedUser?.role === "admin") {
+        navigate("/admin/stats", { replace: true });
+      }
+      // Regular user - use existing logic
+      else if (dashboard?.job_history?.length > 0) {
         navigate("/jobs", {
           state: {
             cv_text: dashboard.job_history[0].cv_text || "",

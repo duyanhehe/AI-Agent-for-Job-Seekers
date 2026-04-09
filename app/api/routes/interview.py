@@ -2,12 +2,15 @@
 
 from fastapi import APIRouter, Depends
 
+from sqlalchemy.orm import Session
 from app.core.dependencies import (
     get_current_user,
+    get_db,
     get_llm_service,
     get_rate_limit_service,
     index_manager,
 )
+from app.models.llm_function_usage import LLMFunctionUsage
 from app.schemas.interview import InterviewAnswerRequest, InterviewRequest
 from app.services.cache.cache_service import cache_get, cache_set
 from app.utils.cache_hash import make_hash, normalize
@@ -19,6 +22,7 @@ router = APIRouter(tags=["interview"])
 async def generate_interview(
     data: InterviewRequest,
     user=Depends(get_current_user),
+    db: Session = Depends(get_db),
     llm_service=Depends(get_llm_service),
     rate_limit=Depends(get_rate_limit_service),
 ):
@@ -42,6 +46,15 @@ async def generate_interview(
         cache_set(rag_cache_key, rag_context, ttl=3600)
 
     rate_limit.check_and_consume(user.id, "generate_interview", weight=3)
+
+    # Log LLM function usage
+    db.add(
+        LLMFunctionUsage(
+            user_id=user.id, function_name="Generate Interview", credits_spent=3
+        )
+    )
+    db.flush()
+
     result = await llm_service.generate_interview(
         data.cv_text, job, rag_context=rag_context
     )
@@ -53,6 +66,7 @@ async def generate_interview(
 
     cache_set(cache_key, response, ttl=3600)
 
+    db.commit()
     return response
 
 
@@ -60,6 +74,7 @@ async def generate_interview(
 async def grade_interview(
     data: InterviewAnswerRequest,
     user=Depends(get_current_user),
+    db: Session = Depends(get_db),
     llm_service=Depends(get_llm_service),
     rate_limit=Depends(get_rate_limit_service),
 ):
@@ -76,7 +91,17 @@ async def grade_interview(
         cache_set(rag_cache_key, rag_context, ttl=3600)
 
     rate_limit.check_and_consume(user.id, "grade_interview", weight=3)
+
+    # Log LLM function usage
+    db.add(
+        LLMFunctionUsage(
+            user_id=user.id, function_name="Grade Interview", credits_spent=3
+        )
+    )
+    db.flush()
+
     result = await llm_service.grade_interview(
         data.cv_text, job, data.answers, rag_context=rag_context
     )
+    db.commit()
     return result

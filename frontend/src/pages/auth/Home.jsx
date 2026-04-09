@@ -1,13 +1,21 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useDashboard } from "../../hooks/auth/useAuth";
 import Layout from "../../components/layout/Layout";
 
 function Home() {
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, user } = useAuth();
   const { dashboard, dashboardLoading } = useDashboard();
   const hasHistory =
     !dashboardLoading && (dashboard?.job_history?.length ?? 0) > 0;
+
+  // Auto-redirect admin users to dashboard
+  useEffect(() => {
+    if (isLoggedIn === true && user?.role === "admin") {
+      navigate("/admin/stats", { replace: true });
+    }
+  }, [isLoggedIn, user, navigate]);
 
   return (
     <Layout>
@@ -41,7 +49,16 @@ function Home() {
             </>
           )}
 
-          {isLoggedIn && (
+          {isLoggedIn && user?.role === "admin" && (
+            <button
+              onClick={() => navigate("/admin/stats")}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg"
+            >
+              Go to Admin Dashboard
+            </button>
+          )}
+
+          {isLoggedIn && user?.role !== "admin" && (
             <>
               {/* If user already has jobs */}
               {hasHistory && (
