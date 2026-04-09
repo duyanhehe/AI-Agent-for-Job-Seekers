@@ -1,5 +1,7 @@
 import httpx
 import json
+from app.services.cache.cache_service import cache_get, cache_set
+from app.utils.cache_hash import make_hash
 
 SYSTEM_RULES = """
 You are an AI career assistant.
@@ -378,8 +380,16 @@ Return JSON:
 
     async def _call_llm(self, prompt):
         """POST JSON prompt to Ollama and parse JSON from the response body."""
+        model_name = "llama3.2:3b"
+
+        # Check Cache
+        cache_key = f"llm_prompt:{make_hash(prompt)}"
+        cached_result = cache_get(cache_key)
+        if cached_result:
+            return cached_result
+
         payload = {
-            "model": "llama3.2:3b",
+            "model": model_name,
             "prompt": prompt,
             "stream": False,
             "format": "json",
@@ -391,8 +401,6 @@ Return JSON:
         result = response.json()
         raw_output = result.get("response", "")
 
-        # print("RAW LLM OUTPUT:", raw_output)
-
         if not raw_output or raw_output.strip() in ["", "null"]:
             return {"error": "Empty response from LLM", "answer": ""}
 
@@ -402,6 +410,9 @@ Return JSON:
             # handle case where JSON is null
             if parsed is None:
                 return {"error": "LLM returned null", "answer": ""}
+
+            # Set Cache
+            cache_set(cache_key, parsed, ttl=86400)  # Cache LLM calls for 24 hours
 
             return parsed
 

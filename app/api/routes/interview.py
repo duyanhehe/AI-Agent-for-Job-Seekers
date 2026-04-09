@@ -2,7 +2,12 @@
 
 from fastapi import APIRouter, Depends
 
-from app.core.dependencies import get_current_user, get_llm_service, index_manager
+from app.core.dependencies import (
+    get_current_user,
+    get_llm_service,
+    get_rate_limit_service,
+    index_manager,
+)
 from app.schemas.interview import InterviewAnswerRequest, InterviewRequest
 from app.services.cache.cache_service import cache_get, cache_set
 from app.utils.cache_hash import make_hash, normalize
@@ -15,6 +20,7 @@ async def generate_interview(
     data: InterviewRequest,
     user=Depends(get_current_user),
     llm_service=Depends(get_llm_service),
+    rate_limit=Depends(get_rate_limit_service),
 ):
     """Return cached or freshly generated interview questions for a CV/job pair."""
     job = index_manager.jobs_data[data.job_id]
@@ -35,6 +41,7 @@ async def generate_interview(
         )
         cache_set(rag_cache_key, rag_context, ttl=3600)
 
+    rate_limit.check_and_consume(user.id, "generate_interview", weight=3)
     result = await llm_service.generate_interview(
         data.cv_text, job, rag_context=rag_context
     )
@@ -54,6 +61,7 @@ async def grade_interview(
     data: InterviewAnswerRequest,
     user=Depends(get_current_user),
     llm_service=Depends(get_llm_service),
+    rate_limit=Depends(get_rate_limit_service),
 ):
     """Grade interview answers against the job and CV with optional RAG context."""
     job = index_manager.jobs_data[data.job_id]
@@ -67,6 +75,7 @@ async def grade_interview(
         )
         cache_set(rag_cache_key, rag_context, ttl=3600)
 
+    rate_limit.check_and_consume(user.id, "grade_interview", weight=3)
     result = await llm_service.grade_interview(
         data.cv_text, job, data.answers, rag_context=rag_context
     )

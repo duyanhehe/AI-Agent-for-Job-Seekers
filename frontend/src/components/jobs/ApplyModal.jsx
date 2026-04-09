@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { prepareApplication, saveApplication } from "../../services/api";
-import { useDashboard } from "../../hooks/auth/useAuth";
+import { useDashboard, useCredits } from "../../hooks/auth/useAuth";
 import Spinner from "../layout/Spinner";
 import { toast } from "react-toastify";
 
@@ -18,6 +18,7 @@ function ApplyModal({ job, isOpen, onClose }) {
   const [coverLetter, setCoverLetter] = useState("");
 
   const { dashboard } = useDashboard();
+  const { refreshCredits } = useCredits();
 
   // Get primary CV id from dashboard
   useEffect(() => {
@@ -89,8 +90,15 @@ function ApplyModal({ job, isOpen, onClose }) {
         skills: res.autofill_data.skills || [],
       });
       setCoverLetter(res.cover_letter);
+      refreshCredits(); // Refresh navbar credits
     } catch (err) {
-      console.error("[ERROR] Failed to prepare application:", err);
+      if (err.response?.status === 429) {
+        toast.error("You've reached your daily limit for AI actions.");
+      } else if (err.response?.status === 503) {
+        toast.error("Service is at maximum daily capacity. Please try again tomorrow.");
+      } else {
+        console.error("[ERROR] Failed to prepare application:", err);
+      }
     } finally {
       setLoading(false);
     }
@@ -128,6 +136,7 @@ function ApplyModal({ job, isOpen, onClose }) {
   };
 
   const onToneChange = (newTone) => {
+    if (loading) return; // Prevent multiple requests
     setTone(newTone);
     handlePrepare(newTone);
   };
@@ -266,11 +275,10 @@ function ApplyModal({ job, isOpen, onClose }) {
                 <div className="flex justify-center gap-4">
                   <button
                     onClick={() => onToneChange("engineering")}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 transition-all font-semibold ${
-                      tone === "engineering"
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 transition-all font-semibold ${tone === "engineering"
                         ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200"
                         : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"
-                    }`}
+                      }`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -290,11 +298,10 @@ function ApplyModal({ job, isOpen, onClose }) {
                   </button>
                   <button
                     onClick={() => onToneChange("sales")}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 transition-all font-semibold ${
-                      tone === "sales"
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 transition-all font-semibold ${tone === "sales"
                         ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200"
                         : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"
-                    }`}
+                      }`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

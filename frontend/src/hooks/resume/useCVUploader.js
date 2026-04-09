@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { getJobFunctions, getCountries, uploadCV } from "../../services/api";
+import { useCredits } from "../auth/useAuth";
+import { toast } from "react-toastify";
 
 export default function useCVUploader(navigate, fetchDashboard) {
+  const { refreshCredits } = useCredits();
   const [jobFunctions, setJobFunctions] = useState([]);
   const [countries, setCountries] = useState([]);
 
@@ -57,9 +60,17 @@ export default function useCVUploader(navigate, fetchDashboard) {
       await uploadCV(formData);
       // Refresh dashboard to get new CV data
       await fetchDashboard();
+      await refreshCredits();
       navigate("/jobs");
     } catch (err) {
-      console.error("Upload failed:", err);
+      if (err.response?.status === 429) {
+        toast.error("You've reached your daily limit for AI actions.");
+      } else if (err.response?.status === 503) {
+        toast.error("Service is at maximum capacity. Try again tomorrow.");
+      } else {
+        console.error("Upload failed:", err);
+        toast.error("Upload failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, get_db
+from app.core.dependencies import get_current_user, get_db, get_rate_limit_service
 from app.models.chat_history import ChatHistory
 from app.models.cv_documents import CVDocuments
 from app.models.job_actions import JobAction
@@ -18,6 +18,7 @@ router = APIRouter(tags=["dashboard"])
 def get_dashboard(
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
+    rate_limit=Depends(get_rate_limit_service),
 ):
     """Return job match history with per-job actions and recent chat rows."""
     histories = (
@@ -83,6 +84,7 @@ def get_dashboard(
         )
 
     return {
+        "credits": rate_limit.get_remaining_credits(user.id),
         "job_history": job_history,
         "chat_history": [
             {

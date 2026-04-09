@@ -11,6 +11,7 @@ from app.core.dependencies import (
     get_db,
     get_llm_service,
     get_reader,
+    get_rate_limit_service,
     index_manager,
 )
 from app.models.chat_history import ChatHistory
@@ -51,6 +52,7 @@ async def upload_cv(
     db: Session = Depends(get_db),
     reader=Depends(get_reader),
     llm_service=Depends(get_llm_service),
+    rate_limit=Depends(get_rate_limit_service),
 ):
     """Upload a CV, extract profile, match jobs, and persist history with caching."""
     validate_file(file)
@@ -101,6 +103,9 @@ async def upload_cv(
     profile = cache_get(profile_cache_key)
 
     if not profile:
+        # Check and consume credits
+        rate_limit.check_and_consume(user.id, "extract_profile", weight=1)
+        
         profile = await llm_service.extract_profile(text, basic_info)
         cache_set(profile_cache_key, profile, ttl=3600)
 

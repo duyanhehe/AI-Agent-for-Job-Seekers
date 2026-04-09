@@ -4,6 +4,7 @@ from app.services.jobs.index_manager import IndexManager
 from app.services.auth.auth_service import AuthService
 from app.services.documents.document_reader import DocumentReader
 from app.services.llm.llm_service import LLMService
+from app.services.auth.rate_limit_service import RateLimitService
 from app.core.database import SessionLocal
 from app.models.user import User
 
@@ -55,3 +56,7 @@ def get_index_manager():
 
 def get_llm_service(index_manager=Depends(get_index_manager)):
     return LLMService(index_manager)
+
+
+def get_rate_limit_service():
+    return RateLimitService()

@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { generateInterview, gradeInterview } from "../../services/api";
+import { useCredits } from "../auth/useAuth";
+import { toast } from "react-toastify";
 
 /**
  * Loads generated interview questions for a job and manages answer + grading state.
@@ -12,6 +14,7 @@ export default function useInterview(job) {
   const [answers, setAnswers] = useState({});
   const [grading, setGrading] = useState(false);
   const [result, setResult] = useState(null);
+  const { refreshCredits } = useCredits();
 
   useEffect(() => {
     if (!job) return;
@@ -25,8 +28,15 @@ export default function useInterview(job) {
         });
 
         setData(res.interview);
+        refreshCredits();
       } catch (err) {
-        console.error(err);
+        if (err.response?.status === 429) {
+          toast.error("You've reached your daily limit for AI actions.");
+        } else if (err.response?.status === 503) {
+          toast.error("Service is at maximum capacity. Try again tomorrow.");
+        } else {
+          console.error(err);
+        }
       } finally {
         setLoading(false);
       }
@@ -56,8 +66,15 @@ export default function useInterview(job) {
       });
 
       setResult(res);
+      refreshCredits();
     } catch (err) {
-      console.error(err);
+      if (err.response?.status === 429) {
+        toast.error("You’ve reached your daily limit for AI actions.");
+      } else if (err.response?.status === 503) {
+        toast.error("Service is at maximum capacity. Try again tomorrow.");
+      } else {
+        console.error(err);
+      }
     } finally {
       setGrading(false);
     }

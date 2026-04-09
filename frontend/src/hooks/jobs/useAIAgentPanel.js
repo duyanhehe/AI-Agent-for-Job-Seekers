@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { askQuestion, analyzeJob } from "../../services/api";
+import { useCredits } from "../auth/useAuth";
+import { toast } from "react-toastify";
 
 /**
  * Builds the initial greeting + analyze button + history messages for the panel.
@@ -55,6 +57,7 @@ export default function useAIAgentPanel(job, cvText, chatHistory = []) {
   const [input, setInput] = useState("");
   const [loadingAsk, setLoadingAsk] = useState(false);
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
+  const { refreshCredits } = useCredits();
 
   useEffect(() => {
     if (!job) return;
@@ -66,38 +69,49 @@ export default function useAIAgentPanel(job, cvText, chatHistory = []) {
    * Fetches structured match analysis and appends it to the thread.
    */
   const handleAnalyze = useCallback(async () => {
-    if (!job) return;
+    if (!job || loadingAnalyze) return;
 
     setLoadingAnalyze(true);
 
-    const result = await analyzeJob({
-      cv_text: cvText,
-      job_id: job.job_id,
-    });
+    try {
+      const result = await analyzeJob({
+        cv_text: cvText,
+        job_id: job.job_id,
+      });
 
-    const analysis = result.analysis;
+      const analysis = result.analysis;
 
-    const aiMessage = {
-      sender: "ai",
-      type: "text",
-      text: `
+      const aiMessage = {
+        sender: "ai",
+        type: "text",
+        text: `
 Key Skills: ${analysis.key_skills?.join(", ")}
 
 Missing Skills: ${analysis.missing_skills?.join(", ")}
 
 ${analysis.summary}`,
-    };
+      };
 
-    setMessages((prev) => [...prev, aiMessage]);
-
-    setLoadingAnalyze(false);
-  }, [job, cvText]);
+      setMessages((prev) => [...prev, aiMessage]);
+      refreshCredits();
+    } catch (err) {
+      if (err.response?.status === 429) {
+        toast.error("You've reached your daily limit for AI actions.");
+      } else if (err.response?.status === 503) {
+        toast.error("Service is at maximum capacity. Try again tomorrow.");
+      } else {
+        console.error(err);
+      }
+    } finally {
+      setLoadingAnalyze(false);
+    }
+  }, [job, cvText, loadingAnalyze, refreshCredits]);
 
   /**
    * Sends the current input as a question and appends the AI reply.
    */
   const handleSend = useCallback(async () => {
-    if (!input || !job) return;
+    if (!input || !job || loadingAsk) return;
 
     const questionText = input;
 
@@ -111,22 +125,33 @@ ${analysis.summary}`,
     setInput("");
     setLoadingAsk(true);
 
-    const result = await askQuestion({
-      cv_text: cvText,
-      job_id: job.job_id,
-      question: questionText,
-    });
+    try {
+      const result = await askQuestion({
+        cv_text: cvText,
+        job_id: job.job_id,
+        question: questionText,
+      });
 
-    const aiMessage = {
-      sender: "ai",
-      type: "text",
-      text: result.result.answer,
-    };
+      const aiMessage = {
+        sender: "ai",
+        type: "text",
+        text: result.result.answer,
+      };
 
-    setMessages((prev) => [...prev, aiMessage]);
-
-    setLoadingAsk(false);
-  }, [input, job, cvText]);
+      setMessages((prev) => [...prev, aiMessage]);
+      refreshCredits();
+    } catch (err) {
+      if (err.response?.status === 429) {
+        toast.error("You’ve reached your daily limit for AI actions.");
+      } else if (err.response?.status === 503) {
+        toast.error("Service is at maximum capacity. Try again tomorrow.");
+      } else {
+        console.error(err);
+      }
+    } finally {
+      setLoadingAsk(false);
+    }
+  }, [input, job, cvText, loadingAsk, refreshCredits]);
 
   return {
     messages,

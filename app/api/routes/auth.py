@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import auth_service, get_current_user, get_db
+from app.core.dependencies import auth_service, get_current_user, get_db, get_rate_limit_service
 from app.models.chat_history import ChatHistory
 from app.models.cv_documents import CVDocuments
 from app.models.external_jobs import ExternalJob
@@ -139,3 +139,13 @@ def delete_account(
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to delete account")
+
+
+@router.get("/auth/credits")
+def get_credits(
+    user=Depends(get_current_user), 
+    rate_limit=Depends(get_rate_limit_service)
+):
+    """Return current remaining credits for the authenticated user."""
+    remaining = rate_limit.get_remaining_credits(user.id)
+    return {"remaining": remaining}

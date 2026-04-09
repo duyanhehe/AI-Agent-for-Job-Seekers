@@ -12,3 +12,8 @@ export function useDashboard() {
     useContext(AuthContext);
   return { dashboard, dashboardLoading, refreshDashboard: fetchDashboard };
 }
+
+export function useCredits() {
+  const { credits, fetchCredits } = useContext(AuthContext);
+  return { credits, refreshCredits: fetchCredits };
+}

@@ -68,6 +68,11 @@ export async function deleteAccount() {
   return res.data;
 }
 
+export async function getCredits() {
+  const res = await api.get("/auth/credits");
+  return res.data;
+}
+
 // ================= DATA =================
 
 export async function getJobFunctions() {

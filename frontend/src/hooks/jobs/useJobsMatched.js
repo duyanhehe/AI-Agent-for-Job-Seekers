@@ -5,7 +5,8 @@ import {
   recalculateJobs,
   getExternalJobs,
 } from "../../services/api";
-import { useDashboard } from "../auth/useAuth";
+import { useDashboard, useCredits } from "../auth/useAuth";
+import { toast } from "react-toastify";
 import usePagination from "../common/usePagination";
 
 /**
@@ -30,6 +31,7 @@ function formatExternalJobs(jobs) {
 
 export default function useJobsMatched(location, navigate) {
   const { dashboard, dashboardLoading, refreshDashboard } = useDashboard();
+  const { refreshCredits } = useCredits();
 
   const [data, setData] = useState(null);
   const [cvList, setCvList] = useState([]);
@@ -185,10 +187,18 @@ export default function useJobsMatched(location, navigate) {
 
       setHasChanges(false);
       await refreshDashboard();
+      await refreshCredits();
     } catch (err) {
-      console.error(err);
+      if (err.response?.status === 429) {
+        toast.error("You’ve reached your daily limit for AI actions.");
+      } else if (err.response?.status === 503) {
+        toast.error("Service is at maximum capacity. Try again tomorrow.");
+      } else {
+        console.error(err);
+      }
+    } finally {
+      setLoadingRecalc(false);
     }
-    setLoadingRecalc(false);
   };
 
   return {

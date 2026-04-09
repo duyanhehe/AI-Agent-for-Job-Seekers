@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getDashboard, getMe, logout as logoutAPI } from "../../services/api";
+import { getDashboard, getMe, logout as logoutAPI, getCredits } from "../../services/api";
 import { AuthContext } from "./AuthContext";
 
 export function AuthProvider({ children }) {
@@ -8,12 +8,14 @@ export function AuthProvider({ children }) {
 
   const [dashboard, setDashboard] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [credits, setCredits] = useState(25);
 
   const fetchDashboard = async () => {
     try {
       setDashboardLoading(true);
       const data = await getDashboard();
       setDashboard(data);
+      if (data.credits !== undefined) setCredits(data.credits);
       return data;
     } catch (err) {
       console.error("Failed to fetch dashboard:", err);
@@ -32,6 +34,16 @@ export function AuthProvider({ children }) {
     } catch (err) {
       setUser(null);
       throw err;
+    }
+  };
+
+  const fetchCredits = async () => {
+    try {
+      const { remaining } = await getCredits();
+      setCredits(remaining);
+      return remaining;
+    } catch (err) {
+      console.error("Failed to fetch credits:", err);
     }
   };
 
@@ -72,6 +84,9 @@ export function AuthProvider({ children }) {
         fetchDashboard,
 
         fetchUser,
+        credits,
+        setCredits,
+        fetchCredits,
         logout,
       }}
     >

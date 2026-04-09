@@ -3,7 +3,12 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 import json
 
-from app.core.dependencies import get_current_user, get_db, get_llm_service
+from app.core.dependencies import (
+    get_current_user,
+    get_db,
+    get_llm_service,
+    get_rate_limit_service,
+)
 from app.models.job_applications import JobApplication
 from app.models.cv_documents import CVDocuments
 from app.models.user_profiles import UserProfile
@@ -25,6 +30,7 @@ async def prepare_application(
     user=Depends(get_current_user),
     db: Session = Depends(get_db),
     llm_service: LLMService = Depends(get_llm_service),
+    rate_limit=Depends(get_rate_limit_service),
 ):
     """
     Extract profile from CV and generate a custom cover letter for a specific job.
@@ -62,6 +68,8 @@ async def prepare_application(
             return cached_result
 
         # Generate Cover Letter
+        rate_limit.check_and_consume(user.id, "generate_cover_letter", weight=2)
+        
         job_details = {
             "title": req.job_title,
             "company": req.company,
