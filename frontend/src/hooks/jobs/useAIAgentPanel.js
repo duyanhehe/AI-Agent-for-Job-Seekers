@@ -81,15 +81,23 @@ export default function useAIAgentPanel(job, cvText, chatHistory = []) {
 
       const analysis = result.analysis;
 
+      const keySkills = analysis.key_skills?.length
+        ? `Key Skills: ${analysis.key_skills.join(", ")}`
+        : "Key Skills: Not clearly identified";
+
+      const missingSkills = analysis.missing_skills?.length
+        ? `Missing Skills: ${analysis.missing_skills.join(", ")}`
+        : "Missing Skills: None clearly identified";
+
+      const summary =
+        analysis.summary && analysis.summary.trim()
+          ? analysis.summary
+          : "No clear summary available for this match.";
+
       const aiMessage = {
         sender: "ai",
         type: "text",
-        text: `
-Key Skills: ${analysis.key_skills?.join(", ")}
-
-Missing Skills: ${analysis.missing_skills?.join(", ")}
-
-${analysis.summary}`,
+        text: `${keySkills}\n\n${missingSkills}\n\n${summary}`,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
@@ -132,10 +140,25 @@ ${analysis.summary}`,
         question: questionText,
       });
 
+      let displayText = result.result.answer;
+
+      if (!displayText) {
+        console.log("LLM RAW RESULT:", result.result);
+        if (result.result.reason === "out_of_scope") {
+          displayText =
+            "I can only answer questions related to this job and your CV.";
+        } else if (result.result.reason === "missing_information") {
+          displayText =
+            "That information is not specified in your CV or the job.";
+        } else {
+          displayText = "I couldn't process that request.";
+        }
+      }
+
       const aiMessage = {
         sender: "ai",
         type: "text",
-        text: result.result.answer,
+        text: displayText,
       };
 
       setMessages((prev) => [...prev, aiMessage]);
