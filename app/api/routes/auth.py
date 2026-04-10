@@ -1,6 +1,6 @@
 """Authentication and account lifecycle endpoints."""
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import (
@@ -16,8 +16,10 @@ from app.models.job_actions import JobAction
 from app.models.job_alert_settings import JobAlertSettings
 from app.models.job_applications import JobApplication
 from app.models.job_matched_history import JobMatchedHistory
+from app.models.llm_function_usage import LLMFunctionUsage
 from app.models.notification import Notification
 from app.models.user_profiles import UserProfile
+from app.models.user import User
 from app.schemas.auth import LoginRequest, SignupRequest
 
 router = APIRouter(tags=["auth"])
@@ -118,21 +120,40 @@ def delete_account(
 
         # Delete all user-related data in order
         # Tables depending on CV
-        db.query(JobMatchedHistory).filter(
-            JobMatchedHistory.user_id == user_id
-        ).delete()
-        db.query(UserProfile).filter(UserProfile.user_id == user_id).delete()
+        db.query(JobMatchedHistory).filter(JobMatchedHistory.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(UserProfile).filter(UserProfile.user_id == user_id).delete(
+            synchronize_session=False
+        )
         # Tables depending ONLY on user
-        db.query(ExternalJob).filter(ExternalJob.user_id == user_id).delete()
-        db.query(ChatHistory).filter(ChatHistory.user_id == user_id).delete()
-        db.query(JobAction).filter(JobAction.user_id == user_id).delete()
-        db.query(JobApplication).filter(JobApplication.user_id == user_id).delete()
-        db.query(Notification).filter(Notification.user_id == user_id).delete()
-        db.query(JobAlertSettings).filter(JobAlertSettings.user_id == user_id).delete()
+        db.query(ExternalJob).filter(ExternalJob.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(ChatHistory).filter(ChatHistory.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(JobAction).filter(JobAction.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(JobApplication).filter(JobApplication.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(Notification).filter(Notification.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(JobAlertSettings).filter(JobAlertSettings.user_id == user_id).delete(
+            synchronize_session=False
+        )
+        db.query(LLMFunctionUsage).filter(LLMFunctionUsage.user_id == user_id).delete(
+            synchronize_session=False
+        )
         # Then CVs
-        db.query(CVDocuments).filter(CVDocuments.user_id == user_id).delete()
+        db.query(CVDocuments).filter(CVDocuments.user_id == user_id).delete(
+            synchronize_session=False
+        )
         # Delete the user account
-        db.delete(user)
+        db.query(User).filter(User.id == user_id).delete(synchronize_session=False)
         db.commit()
 
         # Clear the session cookie
@@ -144,6 +165,7 @@ def delete_account(
         return {"message": "Account deleted successfully"}
     except Exception as e:
         db.rollback()
+
         raise HTTPException(status_code=500, detail="Failed to delete account")
 
 
