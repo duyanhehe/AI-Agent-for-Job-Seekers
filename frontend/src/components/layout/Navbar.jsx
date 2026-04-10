@@ -71,6 +71,17 @@ function Navbar() {
                   </Link>
 
                   <Link
+                    to="/jobs?tab=liked"
+                    className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                      location.search.includes("liked")
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    Liked
+                  </Link>
+
+                  <Link
                     to="/jobs?tab=applied"
                     className={`px-3 py-1 rounded-full text-xs transition-colors ${
                       location.search.includes("applied")
