@@ -198,26 +198,34 @@ export async function gradeInterview(data) {
 
 // ================= APPLICATIONS =================
 
-export async function prepareApplication(data) {
-  console.log("[DEBUG API] prepareApplication payload:", data);
+export async function getApplicationProfile(cvId) {
   try {
-    const res = await api.post("/applications/prepare", data);
-    console.log("[DEBUG API] prepareApplication response:", res.data);
+    const res = await api.get(`/applications/profile/${cvId}`);
     return res.data;
   } catch (error) {
-    console.error("[ERROR API] prepareApplication failed:", {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      message: error.message,
-    });
+    console.error("[ERROR API] getApplicationProfile failed:", error);
+    throw error;
+  }
+}
+
+export async function prepareApplication(data) {
+  try {
+    const res = await api.post("/applications/prepare", data);
+    return res.data;
+  } catch (error) {
+    console.error("[ERROR API] prepareApplication failed:", error);
     throw error;
   }
 }
 
 export async function saveApplication(data) {
-  const res = await api.post("/applications/", data);
-  return res.data;
+  try {
+    const res = await api.post("/applications/", data);
+    return res.data;
+  } catch (error) {
+    console.error("[ERROR API] saveApplication failed:", error);
+    throw error;
+  }
 }
 
 export async function getApplicationHistory() {

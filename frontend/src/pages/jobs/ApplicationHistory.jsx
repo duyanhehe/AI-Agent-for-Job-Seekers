@@ -10,6 +10,9 @@ function ApplicationHistory() {
   const [showCoverLetter, setShowCoverLetter] = useState(false);
   const [selectedCoverLetter, setSelectedCoverLetter] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editingApp, setEditingApp] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editedCoverLetter, setEditedCoverLetter] = useState("");
 
   useEffect(() => {
     fetchHistory();
@@ -29,6 +32,41 @@ function ApplicationHistory() {
   const handleViewCoverLetter = (coverLetter) => {
     setSelectedCoverLetter(coverLetter);
     setShowCoverLetter(true);
+  };
+
+  const handleEditDraft = (app) => {
+    setEditingApp(app);
+    setEditedCoverLetter(app.cover_letter);
+    setShowEditModal(true);
+  };
+
+  const handleSaveDraftChanges = async () => {
+    if (!editingApp) return;
+
+    setSubmitting(true);
+    try {
+      const payload = {
+        job_id: editingApp.job_id,
+        job_title: editingApp.job_title,
+        company: editingApp.company,
+        job_url: editingApp.job_url,
+        status: "draft",
+        autofill_data: editingApp.autofill_data,
+        cover_letter: editedCoverLetter,
+        tone: editingApp.tone,
+      };
+      await saveApplication(payload);
+
+      toast.success("Draft updated successfully!");
+      setShowEditModal(false);
+      setEditingApp(null);
+      await fetchHistory();
+    } catch (err) {
+      console.error("Failed to update draft:", err);
+      toast.error("Failed to update draft");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleCompleteApplication = async (app) => {
@@ -191,13 +229,23 @@ function ApplicationHistory() {
                       View Cover Letter
                     </button>
                     {app.status === "draft" && (
-                      <button
-                        onClick={() => handleCompleteApplication(app)}
-                        disabled={submitting}
-                        className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                      >
-                        {submitting ? "Submitting..." : "Complete Application"}
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleEditDraft(app)}
+                          className="w-full py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-100 border border-blue-200 transition"
+                        >
+                          Edit Draft
+                        </button>
+                        <button
+                          onClick={() => handleCompleteApplication(app)}
+                          disabled={submitting}
+                          className="w-full py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                        >
+                          {submitting
+                            ? "Submitting..."
+                            : "Complete Application"}
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -266,6 +314,121 @@ function ApplicationHistory() {
                 className="flex-1 py-2 px-4 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT DRAFT MODAL */}
+      {showEditModal && editingApp && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm"
+          onClick={() => setShowEditModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[95vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* HEADER */}
+            <div className="p-6 border-b flex justify-between items-center bg-gray-50">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Edit Draft</h2>
+                <p className="text-gray-500 text-sm mt-1">
+                  {editingApp.job_title} at {editingApp.company}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="p-2 hover:bg-gray-200 rounded-full transition"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* CONTENT */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* COVER LETTER CONTENT */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Cover Letter
+                </label>
+                <textarea
+                  value={editedCoverLetter}
+                  onChange={(e) => setEditedCoverLetter(e.target.value)}
+                  className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm leading-relaxed"
+                  rows="14"
+                />
+              </div>
+
+              {/* APPLICATION INFO */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-gray-900 mb-3">
+                  Application Info
+                </h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500 block">Job Title</span>
+                    <p className="font-semibold text-gray-900">
+                      {editingApp.job_title}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block">Company</span>
+                    <p className="font-semibold text-gray-900">
+                      {editingApp.company}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block">Tone Used</span>
+                    <p className="font-semibold text-gray-900 capitalize">
+                      {editingApp.tone}
+                    </p>
+                  </div>
+                  {editingApp.job_url && (
+                    <div className="col-span-2">
+                      <span className="text-gray-500 block">Job URL</span>
+                      <a
+                        href={editingApp.job_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-indigo-600 hover:underline break-all"
+                      >
+                        {editingApp.job_url}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* FOOTER */}
+            <div className="p-6 border-t bg-gray-50 flex gap-3">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="flex-1 py-2 px-4 rounded-lg border border-gray-300 font-semibold text-gray-700 hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDraftChanges}
+                disabled={submitting}
+                className="flex-1 py-2 px-4 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                {submitting ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>

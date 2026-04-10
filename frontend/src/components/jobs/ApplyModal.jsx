@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { prepareApplication, saveApplication } from "../../services/api";
+import {
+  getApplicationProfile,
+  prepareApplication,
+  saveApplication,
+} from "../../services/api";
 import { useDashboard, useCredits } from "../../hooks/auth/useAuth";
 import Spinner from "../layout/Spinner";
 import { toast } from "react-toastify";
 
 function ApplyModal({ job, isOpen, onClose }) {
   const [loading, setLoading] = useState(true);
+  const [loadingCoverLetter, setLoadingCoverLetter] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [tone, setTone] = useState("engineering");
   const [cvId, setCvId] = useState(null);
@@ -16,6 +21,8 @@ function ApplyModal({ job, isOpen, onClose }) {
     skills: [],
   });
   const [coverLetter, setCoverLetter] = useState("");
+  const [coverLetterGenerated, setCoverLetterGenerated] = useState(false);
+  const [lastJobId, setLastJobId] = useState(null); // Track job to know when it changes
 
   const { dashboard } = useDashboard();
   const { refreshCredits } = useCredits();
@@ -41,15 +48,25 @@ function ApplyModal({ job, isOpen, onClose }) {
     }
   }, [job, dashboard]);
 
+  // Load profile data only when modal opens with a new job
   useEffect(() => {
-    if (isOpen && job && cvId) {
-      handlePrepare();
-    } else {
+    const currentJobId = job?.id || job?.job_id;
+
+    // Only load if modal is open AND job has changed
+    if (isOpen && cvId && currentJobId && currentJobId !== lastJobId) {
+      setLastJobId(currentJobId);
+      loadProfileData();
+      // Reset tone and cover letter when job changes
+      setTone("engineering");
+      setCoverLetter("");
+      setCoverLetterGenerated(false);
+    } else if (isOpen && !currentJobId) {
       setLoading(true);
     }
-  }, [isOpen, job, cvId]);
+  }, [isOpen, cvId, job?.id, job?.job_id]);
 
-  const handlePrepare = async (selectedTone = tone) => {
+  // Load autofill profile data without generating cover letter
+  const loadProfileData = async () => {
     setLoading(true);
     try {
       if (!cvId) {
@@ -57,17 +74,38 @@ function ApplyModal({ job, isOpen, onClose }) {
         return;
       }
 
+      const res = await getApplicationProfile(cvId);
+
+      setFormData({
+        name: res.autofill_data.name || "",
+        email: res.autofill_data.email || "",
+        phone: res.autofill_data.phone || "",
+        skills: res.autofill_data.skills || [],
+      });
+    } catch (err) {
+      console.error("[ERROR] Failed to load profile:", err);
+      toast.error("Failed to load profile data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate cover letter with selected tone
+  const generateCoverLetter = async (selectedTone = tone) => {
+    setLoadingCoverLetter(true);
+    setCoverLetterGenerated(false); // Clear previous state
+    try {
+      if (!cvId) {
+        setLoadingCoverLetter(false);
+        return;
+      }
+
       // Validate all required job fields
       const jobTitle = job.job_role || job.title;
       const jobCompany = job.company;
 
-      if (!jobTitle) {
-        setLoading(false);
-        return;
-      }
-
-      if (!jobCompany) {
-        setLoading(false);
+      if (!jobTitle || !jobCompany) {
+        setLoadingCoverLetter(false);
         return;
       }
 
@@ -83,25 +121,30 @@ function ApplyModal({ job, isOpen, onClose }) {
 
       const res = await prepareApplication(payload);
 
-      setFormData({
-        name: res.autofill_data.name || "",
-        email: res.autofill_data.email || "",
-        phone: res.autofill_data.phone || "",
-        skills: res.autofill_data.skills || [],
-      });
-      setCoverLetter(res.cover_letter);
+      // Update both states together
+      setCoverLetter(res.cover_letter || "");
+      setCoverLetterGenerated(true);
       refreshCredits(); // Refresh navbar credits
     } catch (err) {
+      console.error("[ERROR] Failed to generate cover letter:", err);
       if (err.response?.status === 429) {
         toast.error("You've reached your daily limit for AI actions.");
       } else if (err.response?.status === 503) {
-        toast.error("Service is at maximum daily capacity. Please try again tomorrow.");
+        toast.error(
+          "Service is at maximum daily capacity. Please try again tomorrow.",
+        );
       } else {
-        console.error("[ERROR] Failed to prepare application:", err);
+        toast.error("Failed to generate cover letter");
       }
+      setCoverLetterGenerated(false);
     } finally {
-      setLoading(false);
+      setLoadingCoverLetter(false);
     }
+  };
+
+  const onToneChange = (newTone) => {
+    setTone(newTone);
+    generateCoverLetter(newTone);
   };
 
   const handleSave = async (status) => {
@@ -133,12 +176,6 @@ function ApplyModal({ job, isOpen, onClose }) {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const onToneChange = (newTone) => {
-    if (loading) return; // Prevent multiple requests
-    setTone(newTone);
-    handlePrepare(newTone);
   };
 
   if (!isOpen) return null;
@@ -204,7 +241,7 @@ function ApplyModal({ job, isOpen, onClose }) {
             <div className="flex flex-col items-center justify-center py-20">
               <Spinner />
               <p className="mt-4 text-gray-600 font-medium">
-                Extracting data & Generating cover letter...
+                Extracting your profile data...
               </p>
             </div>
           ) : (
@@ -270,15 +307,17 @@ function ApplyModal({ job, isOpen, onClose }) {
               {/* TONE SELECTOR */}
               <div className="bg-gray-50 p-4 rounded-xl">
                 <label className="block text-sm font-bold text-gray-700 mb-4 text-center uppercase tracking-wider">
-                  Customize Cover Letter Tone
+                  Select Cover Letter Tone
                 </label>
                 <div className="flex justify-center gap-4">
                   <button
                     onClick={() => onToneChange("engineering")}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 transition-all font-semibold ${tone === "engineering"
+                    disabled={loadingCoverLetter}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed ${
+                      tone === "engineering"
                         ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200"
                         : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"
-                      }`}
+                    }`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -298,10 +337,12 @@ function ApplyModal({ job, isOpen, onClose }) {
                   </button>
                   <button
                     onClick={() => onToneChange("sales")}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 transition-all font-semibold ${tone === "sales"
+                    disabled={loadingCoverLetter}
+                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl border-2 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed ${
+                      tone === "sales"
                         ? "bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200"
                         : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"
-                      }`}
+                    }`}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -322,18 +363,38 @@ function ApplyModal({ job, isOpen, onClose }) {
                 </div>
               </div>
 
+              {/* STATUS MESSAGE */}
+              {loadingCoverLetter && (
+                <div className="flex items-center justify-center gap-2 py-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <Spinner />
+                  <p className="text-blue-700 font-medium">
+                    Generating cover letter...
+                  </p>
+                </div>
+              )}
+
               {/* COVER LETTER */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                  Tailored Cover Letter
-                </label>
-                <textarea
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  rows={10}
-                  className="w-full p-4 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm leading-relaxed"
-                />
-              </div>
+              {coverLetterGenerated && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Tailored Cover Letter
+                  </label>
+                  <textarea
+                    value={coverLetter}
+                    onChange={(e) => setCoverLetter(e.target.value)}
+                    rows={10}
+                    className="w-full p-4 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm leading-relaxed"
+                  />
+                </div>
+              )}
+
+              {!coverLetterGenerated && !loadingCoverLetter && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-center">
+                  <p className="text-amber-800 font-medium">
+                    Select a tone above to generate your customized cover letter
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -342,15 +403,15 @@ function ApplyModal({ job, isOpen, onClose }) {
         <div className="p-6 border-t bg-gray-50 flex gap-4">
           <button
             onClick={() => handleSave("draft")}
-            disabled={loading || submitting}
-            className="flex-1 py-3 px-4 rounded-xl border border-gray-300 font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50 transition"
+            disabled={loading || submitting || !coverLetterGenerated}
+            className="flex-1 py-3 px-4 rounded-xl border border-gray-300 font-semibold text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
             Save Draft
           </button>
           <button
             onClick={() => handleSave("submitted")}
-            disabled={loading || submitting}
-            className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 disabled:opacity-50 transition shadow-lg shadow-indigo-100"
+            disabled={loading || submitting || !coverLetterGenerated}
+            className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-indigo-100"
           >
             {submitting ? "Submitting..." : "Submit Application"}
           </button>
