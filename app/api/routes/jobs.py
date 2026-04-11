@@ -40,15 +40,7 @@ async def recalculate_jobs(
     if not profile:
         rate_limit.check_and_consume(user.id, "extract_profile", weight=1)
 
-        # Log LLM function usage
-        db.add(
-            LLMFunctionUsage(
-                user_id=user.id, function_name="Extract Profile", credits_spent=1
-            )
-        )
-        db.flush()
-
-        profile = await llm_service.extract_profile(text)
+        profile = await llm_service.extract_profile(text, user.id, db)
         cache_set(profile_cache_key, profile, ttl=3600)
 
     skills = profile.get("skills", []) or []
@@ -126,16 +118,8 @@ async def analyze_job(
     # But for match_cv_to_job, it's safer to just consume 1 credit.
     rate_limit.check_and_consume(user.id, "match_cv_to_job", weight=1)
 
-    # Log LLM function usage
-    db.add(
-        LLMFunctionUsage(
-            user_id=user.id, function_name="Match CV To Job", credits_spent=1
-        )
-    )
-    db.flush()
-
     analysis = await llm_service.match_cv_to_job(
-        data.cv_text, job, rag_context=rag_context
+        data.cv_text, job, user.id, db, rag_context=rag_context
     )
 
     return {"job": job, "analysis": analysis}
@@ -163,16 +147,8 @@ async def ask_job_question(
 
     rate_limit.check_and_consume(user.id, "answer_job_question", weight=1)
 
-    # Log LLM function usage
-    db.add(
-        LLMFunctionUsage(
-            user_id=user.id, function_name="Answer Job Question", credits_spent=1
-        )
-    )
-    db.flush()
-
     answer = await llm_service.answer_job_question(
-        data.cv_text, job, data.question, rag_context=rag_context
+        data.cv_text, job, data.question, user.id, db, rag_context=rag_context
     )
     answer_text = ""
 

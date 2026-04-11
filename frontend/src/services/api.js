@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API = "http://localhost:8000";
+const API = "/api";
 
 // Axios instance
 const api = axios.create({

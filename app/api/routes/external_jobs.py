@@ -30,7 +30,7 @@ async def save_external_job(
         description=description,
     )
 
-    extracted = await llm_service.extract_external_job(data.description)
+    extracted = await llm_service.extract_external_job(data.description, user.id, db)
 
     external_job = ExternalJob(
         user_id=user.id,

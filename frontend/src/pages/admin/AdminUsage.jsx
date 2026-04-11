@@ -111,7 +111,7 @@ function AdminUsage() {
             {/* API USAGE */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                OpenRouter API Usage
+                Gemini API Usage
               </h2>
 
               {usage.api?.error ? (
@@ -121,10 +121,10 @@ function AdminUsage() {
               ) : (
                 <div className="space-y-4">
                   {/* Total Usage */}
-                  <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200">
-                    <p className="text-sm text-gray-600 mb-1">Total Usage</p>
-                    <p className="text-4xl font-bold text-orange-600">
-                      ${usage.api?.total_usage?.toFixed(2) || "0.00"}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+                    <p className="text-sm text-gray-600 mb-1">Total Token Usage</p>
+                    <p className="text-4xl font-bold text-blue-600">
+                      {usage.api?.total_usage?.toLocaleString() || "0"}
                     </p>
                   </div>
 
@@ -135,7 +135,7 @@ function AdminUsage() {
                         Daily Usage (Today)
                       </span>
                       <span className="text-2xl font-bold text-purple-600">
-                        ${usage.api?.usage_daily?.toFixed(2) || "0.00"}
+                        {usage.api?.usage_daily?.toLocaleString() || "0"}
                       </span>
                     </div>
                   </div>
@@ -147,7 +147,7 @@ function AdminUsage() {
                         Weekly Usage (7 days)
                       </span>
                       <span className="text-2xl font-bold text-blue-600">
-                        ${usage.api?.usage_weekly?.toFixed(2) || "0.00"}
+                        {usage.api?.usage_weekly?.toLocaleString() || "0"}
                       </span>
                     </div>
                   </div>
@@ -159,61 +159,26 @@ function AdminUsage() {
                         Monthly Usage (30 days)
                       </span>
                       <span className="text-2xl font-bold text-indigo-600">
-                        ${usage.api?.usage_monthly?.toFixed(2) || "0.00"}
+                        {usage.api?.usage_monthly?.toLocaleString() || "0"}
                       </span>
                     </div>
                   </div>
 
                   {/* Account Info */}
-                  {(usage.api?.is_free_tier || usage.api?.expires_at) && (
-                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-700">
-                        {usage.api?.is_free_tier && (
-                          <>
-                            <strong>Free Tier Account</strong>
-                            {usage.api?.expires_at && (
-                              <> • Expires: {usage.api.expires_at}</>
-                            )}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  )}
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      <strong>Model:</strong> {usage.api?.model || "gemini-2.5-flash-lite"}
+                      <br />
+                      <strong>Mode:</strong> Free Tier (Rate limited)
+                    </p>
+                  </div>
 
-                  {/* Rate Limit Info */}
-                  {usage.api?.rate_limit_requests && (
+                  {/* Token breakdown */}
+                  {usage.api?.details && (
                     <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                      <p className="text-sm text-gray-700">
-                        <strong>Rate Limit:</strong>{" "}
-                        {usage.api.rate_limit_requests} requests per{" "}
-                        {usage.api.rate_limit_interval || "10s"}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Credit Limit Info */}
-                  {(usage.api?.limit || usage.api?.limit_remaining) && (
-                    <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                      <p className="text-sm text-purple-700 space-y-1">
-                        {usage.api?.limit ? (
-                          <div>
-                            <strong>Credit Limit:</strong> $
-                            {usage.api.limit.toFixed(2)}
-                          </div>
-                        ) : null}
-                        {usage.api?.limit_remaining !== null &&
-                        usage.api?.limit_remaining !== undefined ? (
-                          <div>
-                            <strong>Credits Remaining:</strong> $
-                            {usage.api.limit_remaining.toFixed(2)}
-                          </div>
-                        ) : null}
-                        {usage.api?.limit_reset ? (
-                          <div>
-                            <strong>Limit Reset:</strong>{" "}
-                            {usage.api.limit_reset}
-                          </div>
-                        ) : null}
+                      <p className="text-xs text-gray-500 space-y-1">
+                        <div>Prompt Tokens: {usage.api.details.prompt_tokens_total?.toLocaleString()}</div>
+                        <div>Completion Tokens: {usage.api.details.completion_tokens_total?.toLocaleString()}</div>
                       </p>
                     </div>
                   )}
@@ -244,14 +209,14 @@ function AdminUsage() {
                   Most Used
                 </button>
                 <button
-                  onClick={() => setSortBy("least_used")}
+                  onClick={() => setSortBy("most_tokens")}
                   className={`px-3 py-1 rounded text-xs font-medium transition ${
-                    sortBy === "least_used"
+                    sortBy === "most_tokens"
                       ? "bg-blue-600 text-white"
                       : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                   }`}
                 >
-                  Least Used
+                  Most Tokens
                 </button>
                 <button
                   onClick={() => setSortBy("most_credits")}
@@ -262,16 +227,6 @@ function AdminUsage() {
                   }`}
                 >
                   Most Credits
-                </button>
-                <button
-                  onClick={() => setSortBy("least_credits")}
-                  className={`px-3 py-1 rounded text-xs font-medium transition ${
-                    sortBy === "least_credits"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  }`}
-                >
-                  Least Credits
                 </button>
               </div>
             </div>
@@ -289,10 +244,13 @@ function AdminUsage() {
                         Count
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700">
-                        Total Credits
+                        Total Tokens
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700">
-                        Avg. Credits
+                        Avg. Tokens
+                      </th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-gray-700">
+                        Credits Spent
                       </th>
                     </tr>
                   </thead>
@@ -309,10 +267,13 @@ function AdminUsage() {
                           {func.count}
                         </td>
                         <td className="px-4 py-3 text-right text-sm font-medium text-green-600">
-                          {func.total_credits}
+                          {func.total_tokens?.toLocaleString()}
                         </td>
                         <td className="px-4 py-3 text-right text-sm text-gray-600">
-                          {func.average_credits.toFixed(2)}
+                          {func.average_tokens?.toFixed(0)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm text-gray-600">
+                          {func.total_credits}
                         </td>
                       </tr>
                     ))}

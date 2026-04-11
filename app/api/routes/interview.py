@@ -47,16 +47,8 @@ async def generate_interview(
 
     rate_limit.check_and_consume(user.id, "generate_interview", weight=3)
 
-    # Log LLM function usage
-    db.add(
-        LLMFunctionUsage(
-            user_id=user.id, function_name="Generate Interview", credits_spent=3
-        )
-    )
-    db.flush()
-
     result = await llm_service.generate_interview(
-        data.cv_text, job, rag_context=rag_context
+        data.cv_text, job, user.id, db, rag_context=rag_context
     )
 
     response = {
@@ -92,16 +84,8 @@ async def grade_interview(
 
     rate_limit.check_and_consume(user.id, "grade_interview", weight=3)
 
-    # Log LLM function usage
-    db.add(
-        LLMFunctionUsage(
-            user_id=user.id, function_name="Grade Interview", credits_spent=3
-        )
-    )
-    db.flush()
-
     result = await llm_service.grade_interview(
-        data.cv_text, job, data.answers, rag_context=rag_context
+        data.cv_text, job, data.answers, user.id, db, rag_context=rag_context
     )
     db.commit()
     return result

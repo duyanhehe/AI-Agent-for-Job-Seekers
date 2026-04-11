@@ -100,8 +100,11 @@ cd frontend
 npm install
 ```
 
-3. Create `.env` file:
+4. Create `.env` file:
 ```
+GEMINI_API_KEY=your_gemini_api_key_here
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=admin123
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=ai_agent_job_db
@@ -110,6 +113,8 @@ DB_PASSWORD=your_password
 REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_DB=0
+CHROMA_HOST=localhost
+CHROMA_PORT=8000
 SESSION_EXPIRE_SECONDS=86400
 ```
 
@@ -123,24 +128,13 @@ cd frontend && npm run dev
 
 # Terminal 3: Redis
 redis-server
-
-# Terminal 4: Ollama (LLM)
-ollama serve
 ```
 
 Access: http://localhost:5173 (frontend) and http://localhost:8000 (API)
 
 ## Docker Installation
 
-1. Build frontend:
-```bash
-cd frontend
-npm install
-npm run build
-cd ..
-```
-
-2. Setup SSL certificates:
+1. Setup SSL certificates:
 ```bash
 mkdir -p nginx/certs
 openssl req -x509 -newkey rsa:4096 -nodes \
@@ -149,15 +143,32 @@ openssl req -x509 -newkey rsa:4096 -nodes \
   -days 365 -subj "/CN=localhost"
 ```
 
-3. Create `.env` file (see above)
+2. Create `.env` file (ensure `CHROMA_HOST=chromadb` for Docker setup).
 
-4. Start services:
+3. Start services:
+- first time
+```bash
+docker-compose up --build -d
+```
+- start server
 ```bash
 docker-compose up -d
-docker-compose logs -f
+```
+The frontend build is automated within a dedicated container during startup.
+
+Access: http://localhost (Testing) or https://localhost (Production)
+
+4. Stop services:
+```bash
+docker-compose down
 ```
 
-Access: https://localhost
+5. Useful commands
+Check logs: `docker-compose logs -f`
+Check status: `docker-compose ps`
+Restart a specific service: `docker-compose restart fastapi1`
+
+> **Testing without SSL**: The current NGINX configuration is set to listen on port 80 (HTTP) by default for easier initial testing. Once you are ready for production, follow the SSL setup below and update `nginx/nginx.conf`.
 
 ## How It Works
 
@@ -177,7 +188,7 @@ The system uses a **semantic search + market context** RAG approach:
 - Market context grounds the LLM in realistic job market data
 
 **Stage 3: Generation (LLM Analysis)**
-- Send to Ollama (Llama3.2:3b):
+- Send to Google Gemini 2.5 Flash Lite:
   - CV text
   - Job details
   - Market context (similar jobs)
@@ -191,7 +202,7 @@ The system uses a **semantic search + market context** RAG approach:
 2. **Job Search** → Semantic search retrieves 100 similar jobs
 3. **Ranking** → Custom scoring (skills, function, type, location, remote)
 4. **Market Context** → Top 5 jobs formatted as context
-5. **LLM Call** → Send CV + Job + Market Context to Ollama
+5. **LLM Call** → Send CV + Job + Market Context to Gemini
 6. **Structured Output** → LLM returns JSON with analysis
 
 **Why This RAG?**
@@ -215,7 +226,7 @@ The system uses a **semantic search + market context** RAG approach:
 ```
 Client → nginx (:443)
     ├→ / → frontend (static files)
-    ├→ /api/* → FastAPI (3 instances, load balanced)
+    ├→ /api/* → FastAPI (2 instances, load balanced)
     └→ /ws → WebSocket
 ```
 
@@ -225,9 +236,9 @@ Client → nginx (:443)
 - Frontend: React, Vite
 - Cache: Redis
 - Vector DB: ChromaDB
-- LLM: Ollama Llama3.2
+- LLM: Gemini 2.5 Flash Lite
 - Embeddings: sentence-transformers
-- Reverse Proxy: nginx (3 FastAPI instances)
+- Reverse Proxy: nginx (2 FastAPI instances)
 
 ## Configuration Notes
 
@@ -247,10 +258,8 @@ Add more FastAPI instances:
 ```nginx
 upstream fastapi_backend {
     least_conn;
-    server fastapi1:8001;
-    server fastapi2:8002;
-    server fastapi3:8003;
-    server fastapi4:8004;
+    server ai-job-app-1:8000;
+    server ai-job-app-2:8000;
 }
 ```
 

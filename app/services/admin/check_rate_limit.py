@@ -1,64 +1,71 @@
-import requests
-import json
-from app.core.config import OPENROUTER_API_KEY
+from sqlalchemy import func
+from datetime import datetime, timedelta, timezone
+from app.models.llm_function_usage import LLMFunctionUsage
+from app.core.database import SessionLocal
 
 
 class RateLimitChecker:
-    """Service to check OpenRouter API rate limits and credits."""
+    """Service to monitor Gemini API token usage from local logs."""
 
     def __init__(self):
-        self.api_key = OPENROUTER_API_KEY
-        self.endpoint = "https://openrouter.ai/api/v1/key"
+        self.db = SessionLocal()
 
-    async def check_credits(self):
+    def __del__(self):
+        if hasattr(self, "db"):
+            self.db.close()
+
+    async def get_usage_for_period(self, days=None):
         """
-        Check remaining credits and rate limits from OpenRouter.
-
-        Returns:
-            dict: Contains usage, credits, and rate limit information
+        Aggregate token usage for a given number of days.
+        If days is None, returns total lifetime usage.
         """
-        try:
-            response = requests.get(
-                url=self.endpoint, headers={"Authorization": f"Bearer {self.api_key}"}
-            )
-            response.raise_for_status()
+        query = self.db.query(
+            func.sum(LLMFunctionUsage.prompt_tokens).label("prompt"),
+            func.sum(LLMFunctionUsage.completion_tokens).label("completion"),
+            func.sum(LLMFunctionUsage.total_tokens).label("total"),
+        )
 
-            data = response.json()
-            return {"status": "success", "data": data}
-        except requests.exceptions.RequestException as e:
-            return {"status": "error", "message": str(e)}
+        if days is not None:
+            since = datetime.now(timezone.utc) - timedelta(days=days)
+            query = query.filter(LLMFunctionUsage.created_at >= since)
+
+        result = query.first()
+        return {
+            "prompt": int(result.prompt or 0),
+            "completion": int(result.completion or 0),
+            "total": int(result.total or 0),
+        }
 
     async def get_credit_summary(self):
         """
-        Get a simplified credit summary.
-
+        Get a summary of Gemini token usage.
         Returns:
-            dict: Simplified summary with remaining credits and limits
+            dict: Summary with token counts for different periods
         """
-        result = await self.check_credits()
+        try:
+            today = await self.get_usage_for_period(days=1)
+            weekly = await self.get_usage_for_period(days=7)
+            monthly = await self.get_usage_for_period(days=30)
+            total = await self.get_usage_for_period(days=None)
 
-        if result["status"] == "error":
-            return result
-
-        api_data = result.get("data", {}).get("data", {})
-
-        return {
-            "status": "success",
-            "data": {
-                "total_usage": api_data.get("usage", 0),
-                "usage_daily": api_data.get("usage_daily", 0),
-                "usage_weekly": api_data.get("usage_weekly", 0),
-                "usage_monthly": api_data.get("usage_monthly", 0),
-                "limit": api_data.get("limit"),
-                "limit_remaining": api_data.get("limit_remaining"),
-                "limit_reset": api_data.get("limit_reset"),
-                "rate_limit_requests": api_data.get("rate_limit", {}).get(
-                    "requests", -1
-                ),
-                "rate_limit_interval": api_data.get("rate_limit", {}).get(
-                    "interval", "10s"
-                ),
-                "is_free_tier": api_data.get("is_free_tier", False),
-                "expires_at": api_data.get("expires_at"),
-            },
-        }
+            return {
+                "status": "success",
+                "data": {
+                    "total_usage": total["total"],  # Units in tokens
+                    "usage_daily": today["total"],
+                    "usage_weekly": weekly["total"],
+                    "usage_monthly": monthly["total"],
+                    # Gemini doesn't have a dynamic credit limit API, so we set these to None or fixed placeholders
+                    "limit": None,
+                    "limit_remaining": None,
+                    "limit_reset": None,
+                    "is_free_tier": True,  # Defaulting to true for visual feedback
+                    "model": "gemini-2.5-flash-lite",
+                    "details": {
+                        "prompt_tokens_total": total["prompt"],
+                        "completion_tokens_total": total["completion"],
+                    },
+                },
+            }
+        except Exception as e:
+            return {"status": "error", "message": str(e)}

@@ -107,15 +107,7 @@ async def upload_cv(
         # Check and consume credits
         rate_limit.check_and_consume(user.id, "extract_profile", weight=1)
 
-        # Log LLM function usage
-        db.add(
-            LLMFunctionUsage(
-                user_id=user.id, function_name="Extract Profile", credits_spent=1
-            )
-        )
-        db.flush()
-
-        profile = await llm_service.extract_profile(text, basic_info)
+        profile = await llm_service.extract_profile(text, user.id, db, basic_info)
         cache_set(profile_cache_key, profile, ttl=3600)
 
     skills = profile.get("skills", []) or []

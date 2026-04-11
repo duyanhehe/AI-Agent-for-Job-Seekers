@@ -115,21 +115,14 @@ async def prepare_application(
         # Generate Cover Letter
         rate_limit.check_and_consume(user.id, "generate_cover_letter", weight=2)
 
-        # Log LLM function usage
-        db.add(
-            LLMFunctionUsage(
-                user_id=user.id, function_name="Generate Cover Letter", credits_spent=2
-            )
-        )
-        db.flush()
-
         job_details = {
             "title": req.job_title,
             "company": req.company,
             "description": req.job_description,
         }
+
         cl_result = await llm_service.generate_cover_letter(
-            cv.content, job_details, tone=req.tone
+            cv.content, job_details, user.id, db, tone=req.tone
         )
 
         response = {
@@ -236,21 +229,14 @@ async def regenerate_cover_letter(
         # Generate new Cover Letter with different tone
         rate_limit.check_and_consume(user.id, "generate_cover_letter", weight=2)
 
-        # Log LLM function usage
-        db.add(
-            LLMFunctionUsage(
-                user_id=user.id, function_name="Generate Cover Letter", credits_spent=2
-            )
-        )
-        db.flush()
-
         job_details = {
             "title": app.job_title,
             "company": app.company,
             "description": app.autofill_data.get("job_description", ""),
         }
+
         cl_result = await llm_service.generate_cover_letter(
-            cv.content, job_details, tone=tone
+            cv.content, job_details, user.id, db, tone=tone
         )
 
         response = {

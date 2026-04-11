@@ -33,6 +33,8 @@ class AdminLLMUsageService:
             func.count(LLMFunctionUsage.id).label("count"),
             func.sum(LLMFunctionUsage.credits_spent).label("total_credits"),
             func.avg(LLMFunctionUsage.credits_spent).label("average_credits"),
+            func.sum(LLMFunctionUsage.total_tokens).label("total_tokens"),
+            func.avg(LLMFunctionUsage.total_tokens).label("average_tokens"),
         ).group_by(LLMFunctionUsage.function_name)
 
         # Apply sorting
@@ -40,6 +42,8 @@ class AdminLLMUsageService:
             stats = stats.order_by(func.count(LLMFunctionUsage.id).desc())
         elif sort_by == "least_used":
             stats = stats.order_by(func.count(LLMFunctionUsage.id).asc())
+        elif sort_by == "most_tokens":
+            stats = stats.order_by(func.sum(LLMFunctionUsage.total_tokens).desc())
         elif sort_by == "most_credits":
             stats = stats.order_by(func.sum(LLMFunctionUsage.credits_spent).desc())
         elif sort_by == "least_credits":
@@ -56,6 +60,8 @@ class AdminLLMUsageService:
                 "count": row[1] or 0,
                 "total_credits": row[2] or 0,
                 "average_credits": round(float(row[3]) if row[3] else 0, 2),
+                "total_tokens": int(row[4] or 0),
+                "average_tokens": round(float(row[5]) if row[5] else 0, 2),
             }
             for row in results
         ]

@@ -17,3 +17,7 @@ pytest_cache/
 *.sqlite3
 # Package
 node_modules/
+
+# nginx
+nginx/certs/
+nginx/logs/

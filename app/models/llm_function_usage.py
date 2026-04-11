@@ -16,4 +16,9 @@ class LLMFunctionUsage(Base):
     #              3 = generate_interview/grade_interview
     credits_spent = Column(Integer)
 
+    # Gemini Token Usage
+    prompt_tokens = Column(Integer, default=0)
+    completion_tokens = Column(Integer, default=0)
+    total_tokens = Column(Integer, default=0)
+
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

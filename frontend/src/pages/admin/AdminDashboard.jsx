@@ -215,7 +215,7 @@ function AdminDashboard() {
             {/* API Credits */}
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
-                API Credits & Usage
+                Token Usage
               </h2>
               {usage.api?.error ? (
                 <div className="bg-yellow-50 border border-yellow-200 rounded p-3 text-yellow-700 text-sm">
@@ -226,25 +226,25 @@ function AdminDashboard() {
                   <div className="flex justify-between items-center pb-3 border-b">
                     <span className="text-gray-600">Total Usage</span>
                     <span className="font-mono font-bold text-orange-600">
-                      ${usage.api?.total_usage?.toFixed(2) || "0.00"}
+                      {usage.api?.total_usage?.toFixed(2) || "0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b">
                     <span className="text-gray-600">Daily Usage</span>
                     <span className="font-mono font-bold text-gray-900">
-                      ${usage.api?.usage_daily?.toFixed(2) || "0.00"}
+                      {usage.api?.usage_daily?.toFixed(2) || "0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pb-3 border-b">
                     <span className="text-gray-600">Weekly Usage</span>
                     <span className="font-mono font-bold text-gray-900">
-                      ${usage.api?.usage_weekly?.toFixed(2) || "0.00"}
+                      {usage.api?.usage_weekly?.toFixed(2) || "0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Monthly Usage</span>
                     <span className="font-mono font-bold text-gray-900">
-                      ${usage.api?.usage_monthly?.toFixed(2) || "0.00"}
+                      {usage.api?.usage_monthly?.toFixed(2) || "0.00"}
                     </span>
                   </div>
                   {usage.api?.is_free_tier && (
