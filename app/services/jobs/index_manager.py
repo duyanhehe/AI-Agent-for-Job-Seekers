@@ -73,8 +73,6 @@ Skills: {", ".join(all_skills)}
             storage_context=self.storage_context,
         )
 
-        print("Job index created")
-
     # --------------------------------------------------
 
     def get_job_functions(self):

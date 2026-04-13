@@ -8,7 +8,7 @@ from app.core.dependencies import (
     get_db,
     get_llm_service,
     get_rate_limit_service,
-    index_manager,
+    get_index_manager,
 )
 from app.models.chat_history import ChatHistory
 from app.models.job_actions import JobAction
@@ -30,6 +30,7 @@ async def recalculate_jobs(
     db: Session = Depends(get_db),
     llm_service=Depends(get_llm_service),
     rate_limit=Depends(get_rate_limit_service),
+    index_manager=Depends(get_index_manager),
 ):
     """Re-run matching for a CV with new filters; refresh profile cache if needed."""
     text = data.cv_text
@@ -98,6 +99,7 @@ async def analyze_job(
     db: Session = Depends(get_db),
     llm_service=Depends(get_llm_service),
     rate_limit=Depends(get_rate_limit_service),
+    index_manager=Depends(get_index_manager),
 ):
     """Compare CV text to a single indexed job with optional RAG context."""
     job = index_manager.jobs_data[data.job_id]
@@ -132,6 +134,7 @@ async def ask_job_question(
     db: Session = Depends(get_db),
     llm_service=Depends(get_llm_service),
     rate_limit=Depends(get_rate_limit_service),
+    index_manager=Depends(get_index_manager),
 ):
     """Answer a question about a job using the CV and persist chat history."""
     job = index_manager.jobs_data[data.job_id]

@@ -33,12 +33,19 @@ async def lifespan(app: FastAPI):
     try:
         sync_admin_account(db)
         print("Admin account synced")
+    except Exception as e:
+        print(f"ERROR during admin sync: {e}")
+        raise
     finally:
         db.close()
 
     # Initialize job index
-    index_manager.indexJobs()
-    print("Job index initialized")
+    try:
+        index_manager.indexJobs()
+        print("Job index initialized")
+    except Exception as e:
+        print(f"ERROR during job index initialization: {e}")
+        raise
 
     yield
 

@@ -17,55 +17,32 @@ An intelligent job application assistant that uses LLM and RAG to help job seeke
 
 ```
 AI_Agent_Job_App/
-├── app/                        # FastAPI backend
-│   ├── main.py                # Application entry point
-│   ├── api/                   # API routes
-│   │   ├── router.py          # Main router
-│   │   └── routes/            # Route modules
-│   ├── core/                  # Core functionality
-│   ├── models/                # SQLAlchemy ORM models
-│   ├── schemas/               # Pydantic schemas
-│   ├── services/              # Business logic
-│   │   ├── auth/              # Auth service
-│   │   ├── cache/             # Cache service
-│   │   ├── documents/         # Document processing
-│   │   ├── jobs/              # Job matching
-│   │   ├── llm/               # LLM integration
-│   │   └── reference/         # Reference services
-│   ├── storage/               # Vector database
-│   └── utils/                 # Utilities
-├── frontend/                  # React application
-│   ├── index.html             # HTML entry point
-│   ├── package.json           # Frontend dependencies
-│   ├── vite.config.js         # Vite configuration
-│   ├── src/                   # React source code
-│   │   ├── App.jsx
-│   │   ├── main.jsx
-│   │   ├── components/        # React components
-│   │   ├── hooks/             # Custom hooks
-│   │   ├── pages/             # Page components
-│   │   ├── services/          # API services
-│   │   ├── assets/            # Static assets
-│   │   └── index.css
-│   ├── public/                # Public assets
-│   └── dist/                  # Built frontend (npm run build)
-├── data/                      # Data storage
-│   ├── uploads/               # User uploaded CVs
-│   └── chroma_db/             # Vector database persistence
-├── nginx/                     # Reverse proxy configuration
-│   ├── nginx.conf             # Main configuration
-│   ├── certs/                 # SSL certificates
-│   │   ├── server.crt
-│   │   └── server.key
-│   └── logs/                  # Access logs
-├── documents/                 # Documentation files
+├── app/                        # FastAPI Backend
+│   ├── api/                   # REST API routes
+│   ├── core/                  # App configuration & security
+│   ├── models/                # Database models
+│   ├── schemas/               # Pydantic validation schemas
+│   ├── services/              # Core business logic
+│   │   ├── auth/              # JWT & Auth logic
+│   │   ├── cache/             # Redis caching
+│   │   ├── jobs/              # Job matching & RAG
+│   │   └── llm/               # Gemini integration & Guardrails
+│   ├── utils/                 # Helpers & parsers
+│   └── main.py                # Server entry point
+├── frontend/                  # React + Vite Frontend
+│   ├── public/                # Static assets
+│   └── src/                   # React source
+│       ├── assets/            # CSS & images
+│       ├── components/        # Reusable UI components
+│       ├── hooks/             # Custom React hooks
+│       ├── pages/             # Page views
+│       └── services/          # API client services
+├── tests/                     # Backend test suite (Pytest)
+├── nginx/                     # Production reverse proxy config
 ├── docker-compose.yml         # Multi-container orchestration
-├── Dockerfile                 # FastAPI container image
-├── requirements.txt           # Python dependencies
-├── requirements.in            # Pip-tools input
-├── .env                       # Environment variables (git ignored)
-├── .env.example               # Environment template
-└── README.md                  # This file
+├── requirements.txt           # Python dependencies (Backend)
+├── .env.example               # Environment variables template
+└── README.md                  # Project documentation
 ```
 
 ### About frontend/dist/
@@ -188,7 +165,7 @@ The system uses a **semantic search + market context** RAG approach:
 - Market context grounds the LLM in realistic job market data
 
 **Stage 3: Generation (LLM Analysis)**
-- Send to Google Gemini 2.5 Flash Lite:
+- Send to Google Gemini 2.5 Flash (fallback to Flash Lite):
   - CV text
   - Job details
   - Market context (similar jobs)
@@ -236,7 +213,7 @@ Client → nginx (:443)
 - Frontend: React, Vite
 - Cache: Redis
 - Vector DB: ChromaDB
-- LLM: Gemini 2.5 Flash Lite
+- LLM: Gemini 2.5 Flash & Flash Lite
 - Embeddings: sentence-transformers
 - Reverse Proxy: nginx (2 FastAPI instances)
 

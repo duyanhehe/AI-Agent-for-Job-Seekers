@@ -185,6 +185,18 @@ export default function useJobsMatched(location, navigate) {
         warning: result.warning ?? prev?.warning,
       }));
 
+      // Show toast notification if there's a country warning
+      if (result.warning) {
+        toast.warning(result.warning, {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+
       setHasChanges(false);
       await refreshDashboard();
       await refreshCredits();

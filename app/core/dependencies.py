@@ -9,8 +9,11 @@ from app.core.database import SessionLocal
 from app.models.user import User
 
 
+# Global service instances
 index_manager = IndexManager()
 auth_service = AuthService()
+llm_service = LLMService(index_manager)
+rate_limit_service = RateLimitService()
 
 
 # DB dependency
@@ -57,12 +60,12 @@ def get_reader():
 
 
 def get_index_manager():
-    return IndexManager()
+    return index_manager
 
 
-def get_llm_service(index_manager=Depends(get_index_manager)):
-    return LLMService(index_manager)
+def get_llm_service():
+    return llm_service
 
 
 def get_rate_limit_service():
-    return RateLimitService()
+    return rate_limit_service

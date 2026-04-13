@@ -12,7 +12,7 @@ from app.core.dependencies import (
     get_llm_service,
     get_reader,
     get_rate_limit_service,
-    index_manager,
+    get_index_manager,
 )
 from app.models.chat_history import ChatHistory
 from app.models.cv_documents import CVDocuments
@@ -54,6 +54,7 @@ async def upload_cv(
     reader=Depends(get_reader),
     llm_service=Depends(get_llm_service),
     rate_limit=Depends(get_rate_limit_service),
+    index_manager=Depends(get_index_manager),
 ):
     """Upload a CV, extract profile, match jobs, and persist history with caching."""
     validate_file(file)
@@ -92,12 +93,10 @@ async def upload_cv(
         db.add(cv)
         db.commit()
         db.refresh(cv)
-        print("Created new CV")
     else:
         if not cv.file_name or cv.file_name != file.filename:
             cv.file_name = file.filename
             db.commit()
-    print("Reusing existing CV (filename updated)")
 
     basic_info = extract_basic_info(text)
     profile_cache_key = f"profile:{user.id}:{make_hash(text)}"

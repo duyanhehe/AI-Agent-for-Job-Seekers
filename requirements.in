@@ -1,6 +1,6 @@
 # Gemini AI
 google-genai
-
+google-api-core
 # FastAPI and related dependencies
 fastapi
 uvicorn[standard]
@@ -29,3 +29,7 @@ chromadb
 datasets
 # Location parsing
 pycountry
+# Testing
+pytest
+pytest-asyncio
+pytest-mock
