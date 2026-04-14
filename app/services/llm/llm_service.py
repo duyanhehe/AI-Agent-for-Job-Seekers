@@ -1,5 +1,6 @@
 from google import genai
 from google.api_core import exceptions
+from fastapi import HTTPException
 import json
 import asyncio
 from app.services.cache.cache_service import cache_get, cache_set
@@ -22,8 +23,18 @@ class LLMService:
     """Uses Google Gemini 2.5 Flash and Gemini 2.5 Flash Lite for CV, job, and interview workflows."""
 
     def __init__(self, index_manager):
-        """Initialize the Gemini client and store the shared index_manager."""
-        self.client = genai.Client(api_key=GEMINI_API_KEY)
+        """Initialize the Gemini client with retry logic and store the shared index_manager."""
+        retry_options = genai.types.HttpRetryOptions(
+            attempts=5,
+            initial_delay=2.0,
+            max_delay=60.0,
+            exp_base=2.0,
+            http_status_codes=[429, 503],
+        )
+        self.client = genai.Client(
+            api_key=GEMINI_API_KEY,
+            http_options=genai.types.HttpOptions(retry_options=retry_options),
+        )
         self.index_manager = index_manager
 
     def _get_rag_context(self, query):
@@ -140,7 +151,7 @@ class LLMService:
         max_retries = 10
         retry_delay = 1.0  # seconds
 
-        for attempt in range(max_retries):
+        for _attempt in range(max_retries):
             # Check cache first
             cached_result = cache_get(cache_key)
             if cached_result:
@@ -334,6 +345,12 @@ class LLMService:
             print("UNKNOWN SCHEMA for function:", function_name, parsed)
             return {"answer": "", "reason": "invalid_format"}
 
+        except (exceptions.ServiceUnavailable, exceptions.DeadlineExceeded):
+            # Propagate Gemini 503/504 as a clean HTTP 503 for the frontend
+            raise HTTPException(
+                status_code=503,
+                detail="The AI service is temporarily overloaded. Please try again in few minutes.",
+            )
         except Exception as e:
             print("LLM ERROR:", str(e))
             return {"answer": "", "reason": "llm_failure"}

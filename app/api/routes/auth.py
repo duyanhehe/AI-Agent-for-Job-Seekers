@@ -102,7 +102,7 @@ def reset_password(
     except HTTPException:
         db.rollback()
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise HTTPException(status_code=500, detail="Failed to update password")
 
@@ -163,7 +163,7 @@ def delete_account(
         response.delete_cookie("session_id")
 
         return {"message": "Account deleted successfully"}
-    except Exception as e:
+    except Exception:
         db.rollback()
 
         raise HTTPException(status_code=500, detail="Failed to delete account")

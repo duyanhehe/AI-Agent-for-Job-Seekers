@@ -1,4 +1,3 @@
-import time
 from datetime import datetime
 from fastapi import HTTPException
 from app.core.redis import redis_client
@@ -59,7 +58,7 @@ class RateLimitService:
     def _get_global_key(self):
         return f"ratelimit:global:{self.today}"
 
-    def check_and_consume(self, user_id: int, feature_name: str, weight: int):
+    def check_and_consume(self, user_id: int, weight: int):
         """
         Atomically check and consume user credits and global capacity using Lua.
         Raises HTTPException if limits are exceeded.

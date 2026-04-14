@@ -16,11 +16,3 @@ class NotificationResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class CreateNotificationRequest(BaseModel):
-    """Schema for creating a notification."""
-
-    title: str
-    message: str
-    notification_type: str = "general"

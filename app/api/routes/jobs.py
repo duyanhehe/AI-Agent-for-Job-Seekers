@@ -13,7 +13,6 @@ from app.core.dependencies import (
 from app.models.chat_history import ChatHistory
 from app.models.job_actions import JobAction
 from app.models.job_matched_history import JobMatchedHistory
-from app.models.llm_function_usage import LLMFunctionUsage
 from app.schemas.job_analysis import JobAnalysisRequest
 from app.schemas.job_question import JobQuestionRequest
 from app.schemas.job_recalculate import JobRecalculateRequest
@@ -39,7 +38,7 @@ async def recalculate_jobs(
     profile = cache_get(profile_cache_key)
 
     if not profile:
-        rate_limit.check_and_consume(user.id, "extract_profile", weight=1)
+        rate_limit.check_and_consume(user.id, weight=1)
 
         profile = await llm_service.extract_profile(text, user.id, db)
         cache_set(profile_cache_key, profile, ttl=3600)
@@ -118,7 +117,7 @@ async def analyze_job(
     # However, for user credit tracking, we'll consume here if not in analysis cache (if it had one, but it doesn't).
     # Since LLMService does the internal caching, we can't easily skip consumption here.
     # But for match_cv_to_job, it's safer to just consume 1 credit.
-    rate_limit.check_and_consume(user.id, "match_cv_to_job", weight=1)
+    rate_limit.check_and_consume(user.id, weight=1)
 
     analysis = await llm_service.match_cv_to_job(
         data.cv_text, job, user.id, db, rag_context=rag_context
@@ -148,7 +147,7 @@ async def ask_job_question(
         )
         cache_set(rag_cache_key, rag_context, ttl=3600)
 
-    rate_limit.check_and_consume(user.id, "answer_job_question", weight=1)
+    rate_limit.check_and_consume(user.id, weight=1)
 
     answer = await llm_service.answer_job_question(
         data.cv_text, job, data.question, user.id, db, rag_context=rag_context

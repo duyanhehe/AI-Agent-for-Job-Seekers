@@ -106,7 +106,7 @@ export default function useAIAgentPanel(job, cvText, chatHistory = []) {
       if (err.response?.status === 429) {
         toast.error("You've reached your daily limit for AI actions.");
       } else if (err.response?.status === 503) {
-        toast.error("Service is at maximum capacity. Try again tomorrow.");
+        toast.error("The AI service is temporarily overloaded. Please try again in few minutes.");
       } else {
         console.error(err);
       }
@@ -165,9 +165,9 @@ export default function useAIAgentPanel(job, cvText, chatHistory = []) {
       refreshCredits();
     } catch (err) {
       if (err.response?.status === 429) {
-        toast.error("You’ve reached your daily limit for AI actions.");
+        toast.error("You've reached your daily limit for AI actions.");
       } else if (err.response?.status === 503) {
-        toast.error("Service is at maximum capacity. Try again tomorrow.");
+        toast.error("The AI service is temporarily overloaded. Please try again in few minutes.");
       } else {
         console.error(err);
       }

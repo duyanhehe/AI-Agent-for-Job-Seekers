@@ -1,6 +1,8 @@
 import pytest
 import json
 from unittest.mock import AsyncMock, MagicMock
+from google.api_core import exceptions
+from fastapi import HTTPException
 from app.services.llm.llm_service import LLMService
 
 
@@ -82,3 +84,57 @@ async def test_call_llm_exception(llm_service, db, monkeypatch):
     )
 
     assert result["reason"] == "llm_failure"
+
+
+@pytest.mark.asyncio
+async def test_call_llm_resource_exhausted_fallback(
+    llm_service, mock_llm_response, db, monkeypatch
+):
+    # First call (Flash) raises ResourceExhausted, second call (Flash-Lite) succeeds
+    async_mock = AsyncMock(
+        side_effect=[exceptions.ResourceExhausted("Quota hit"), mock_llm_response]
+    )
+
+    monkeypatch.setattr(llm_service.client.aio.models, "generate_content", async_mock)
+
+    result = await llm_service._call_llm(
+        prompt="test", function_name="Test", user_id=1, db=db
+    )
+
+    assert result["answer"] == "Yes"
+    # Verify it was called twice
+    assert async_mock.call_count == 2
+    # First call was Flash, second was Flash-Lite
+    assert async_mock.call_args_list[0].kwargs["model"] == "gemini-2.5-flash"
+    assert async_mock.call_args_list[1].kwargs["model"] == "gemini-2.5-flash-lite"
+
+
+@pytest.mark.asyncio
+async def test_call_llm_resource_exhausted_both_fail(llm_service, db, monkeypatch):
+    # Both calls raise ResourceExhausted
+    async_mock = AsyncMock(side_effect=exceptions.ResourceExhausted("Quota hit"))
+
+    monkeypatch.setattr(llm_service.client.aio.models, "generate_content", async_mock)
+
+    result = await llm_service._call_llm(
+        prompt="test", function_name="Test", user_id=1, db=db
+    )
+
+    assert result["reason"] == "quota_exhausted"
+    assert async_mock.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_call_llm_service_unavailable(llm_service, db, monkeypatch):
+    # Raises ServiceUnavailable
+    async_mock = AsyncMock(side_effect=exceptions.ServiceUnavailable("Overloaded"))
+
+    monkeypatch.setattr(llm_service.client.aio.models, "generate_content", async_mock)
+
+    with pytest.raises(HTTPException) as exc:
+        await llm_service._call_llm(
+            prompt="test", function_name="Test", user_id=1, db=db
+        )
+
+    assert exc.value.status_code == 503
+    assert "temporarily overloaded" in exc.value.detail

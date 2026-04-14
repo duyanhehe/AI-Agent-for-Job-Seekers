@@ -204,7 +204,7 @@ export default function useJobsMatched(location, navigate) {
       if (err.response?.status === 429) {
         toast.error("You've reached your daily limit for AI actions.");
       } else if (err.response?.status === 503) {
-        toast.error("Service is at maximum capacity. Try again tomorrow.");
+        toast.error("The AI service is temporarily overloaded. Please try again in few minutes.");
       } else {
         console.error(err);
       }

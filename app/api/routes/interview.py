@@ -10,7 +10,6 @@ from app.core.dependencies import (
     get_rate_limit_service,
     index_manager,
 )
-from app.models.llm_function_usage import LLMFunctionUsage
 from app.schemas.interview import InterviewAnswerRequest, InterviewRequest
 from app.services.cache.cache_service import cache_get, cache_set
 from app.utils.cache_hash import make_hash, normalize
@@ -45,7 +44,7 @@ async def generate_interview(
         )
         cache_set(rag_cache_key, rag_context, ttl=3600)
 
-    rate_limit.check_and_consume(user.id, "generate_interview", weight=3)
+    rate_limit.check_and_consume(user.id, weight=3)
 
     result = await llm_service.generate_interview(
         data.cv_text, job, user.id, db, rag_context=rag_context
@@ -82,7 +81,7 @@ async def grade_interview(
         )
         cache_set(rag_cache_key, rag_context, ttl=3600)
 
-    rate_limit.check_and_consume(user.id, "grade_interview", weight=3)
+    rate_limit.check_and_consume(user.id, weight=3)
 
     result = await llm_service.grade_interview(
         data.cv_text, job, data.answers, user.id, db, rag_context=rag_context

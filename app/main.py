@@ -8,7 +8,7 @@ from app.core.dependencies import index_manager
 from app.core.database import engine, Base, SessionLocal
 from app.core.init_admin import sync_admin_account
 import logging
-import json
+
 
 logging.basicConfig(level=logging.INFO)
 
