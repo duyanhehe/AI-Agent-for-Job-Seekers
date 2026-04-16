@@ -15,6 +15,7 @@ from .prompts import (
     build_generate_interview_prompt,
     build_grade_interview_prompt,
     build_cover_letter_prompt,
+    build_cv_builder_prompt,
 )
 from .llm_guardrails import GuardrailValidator
 
@@ -133,6 +134,11 @@ class LLMService:
         return await self._call_llm(
             prompt, "Generate Cover Letter", user_id, db, credits=2
         )
+
+    async def improve_cv(self, cv_text, missing_skills, user_id, db):
+        """Naturally integrate missing skills into the CV text via LLM."""
+        prompt = build_cv_builder_prompt(cv_text, missing_skills)
+        return await self._call_llm(prompt, "Improve CV", user_id, db, credits=1)
 
     async def _call_llm(
         self,
@@ -333,6 +339,11 @@ class LLMService:
 
             elif function_name == "Generate Cover Letter":
                 parsed.setdefault("cover_letter", "")
+                cache_set(cache_key, parsed, ttl=86400)
+                return parsed
+
+            elif function_name == "Improve CV":
+                parsed.setdefault("updated_cv", "")
                 cache_set(cache_key, parsed, ttl=86400)
                 return parsed
 

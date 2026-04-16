@@ -435,3 +435,35 @@ Return JSON:
 
 REMINDER: Output must be valid JSON only. No text.
 """
+# --------------------------------------------------
+# CV Builder (Improve CV) prompt
+# --------------------------------------------------
+
+
+def build_cv_builder_prompt(cv_text, missing_skills):
+    return f"""
+{SYSTEM_RULES}
+
+You are an expert CV writer. Your task is to update the candidate's CV text to naturally include missing skills required for a specific job.
+
+STRICT RULES:
+- INTEGRATE the provided skills into the existing CV text (e.g., in the "Skills" section or "Experience" descriptions).
+- Do NOT hallucinate new experiences, companies, or degrees.
+- Keep the overall tone and structure of the original CV.
+- Only add the specific skills requested.
+- Return ONLY JSON with the updated text.
+
+CV Text:
+{cv_text}
+
+Missing Skills to add:
+{missing_skills}
+
+Return JSON:
+
+{{
+  "updated_cv": "The complete updated CV text"
+}}
+
+REMINDER: Output must be valid JSON only. No text.
+"""

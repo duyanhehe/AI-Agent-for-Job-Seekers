@@ -7,6 +7,7 @@ import Spinner from "../../components/layout/Spinner";
 import useJobsMatched from "../../hooks/jobs/useJobsMatched";
 import ExternalJobCard from "../../components/jobs/ExternalJobCard";
 import ExternalJobDrawer from "../../components/jobs/ExternalJobDrawer";
+import { useDashboard } from "../../hooks/auth/useAuth";
 
 function JobsMatched() {
   const location = useLocation();
@@ -44,6 +45,8 @@ function JobsMatched() {
     setShowDrawer,
     refreshExternalJobs,
   } = useJobsMatched(location, navigate);
+
+  const { refreshDashboard } = useDashboard();
 
   const tab = new URLSearchParams(location.search).get("tab") || "recommended";
 
@@ -350,6 +353,7 @@ function JobsMatched() {
                 job={selectedJob}
                 cvText={data.cv_text}
                 chatHistory={chatHistory}
+                onCVImproved={refreshDashboard}
               />
             ) : (
               <EmptyJobPanel activeCV={activeCV} cvText={data.cv_text} />

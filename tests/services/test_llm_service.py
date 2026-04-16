@@ -138,3 +138,22 @@ async def test_call_llm_service_unavailable(llm_service, db, monkeypatch):
 
     assert exc.value.status_code == 503
     assert "temporarily overloaded" in exc.value.detail
+
+
+@pytest.mark.asyncio
+async def test_improve_cv(llm_service, db, monkeypatch):
+    mock = MagicMock()
+    mock.text = json.dumps({"updated_cv": "Updated CV Text with Python and React."})
+    mock.usage_metadata = MagicMock()
+    mock.usage_metadata.prompt_token_count = 10
+    mock.usage_metadata.candidates_token_count = 20
+    mock.usage_metadata.total_token_count = 30
+
+    async_mock = AsyncMock(return_value=mock)
+    monkeypatch.setattr(llm_service.client.aio.models, "generate_content", async_mock)
+
+    result = await llm_service.improve_cv(
+        cv_text="Original CV", missing_skills="Python, React", user_id=1, db=db
+    )
+
+    assert result["updated_cv"] == "Updated CV Text with Python and React."

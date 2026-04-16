@@ -110,6 +110,16 @@ export async function setPrimaryCVAPI(cv_id) {
   return res.data;
 }
 
+export async function previewCVBuild(data) {
+  const res = await api.post("/cv/builder/preview", data);
+  return res.data;
+}
+
+export async function saveCVBuild(data) {
+  const res = await api.post("/cv/builder/save", data);
+  return res.data;
+}
+
 // ================= JOB =================
 
 export async function recalculateJobs(data) {

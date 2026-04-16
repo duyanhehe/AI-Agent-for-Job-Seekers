@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { askQuestion, analyzeJob } from "../../services/api";
+import { askQuestion, analyzeJob, previewCVBuild, saveCVBuild } from "../../services/api";
 import { useCredits } from "../auth/useAuth";
 import { toast } from "react-toastify";
 
@@ -41,6 +41,10 @@ function buildInitialMessages(job, chatHistory) {
       sender: "ai",
       type: "analyze_button",
     },
+    {
+      sender: "ai",
+      type: "cv_build_button",
+    },
     ...historyMessages,
   ];
 }
@@ -52,11 +56,14 @@ function buildInitialMessages(job, chatHistory) {
  * @param {object[]} chatHistory
  * @returns {object}
  */
-export default function useAIAgentPanel(job, cvText, chatHistory = []) {
+export default function useAIAgentPanel(job, cvText, chatHistory = [], onCVImproved) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loadingAsk, setLoadingAsk] = useState(false);
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
+  const [loadingBuild, setLoadingBuild] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
   const { refreshCredits } = useCredits();
 
   useEffect(() => {
@@ -101,6 +108,17 @@ export default function useAIAgentPanel(job, cvText, chatHistory = []) {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
+
+      if (analysis.missing_skills?.length > 0) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: "ai",
+            type: "cv_build_button",
+          },
+        ]);
+      }
+
       refreshCredits();
     } catch (err) {
       if (err.response?.status === 429) {
@@ -176,13 +194,85 @@ export default function useAIAgentPanel(job, cvText, chatHistory = []) {
     }
   }, [input, job, cvText, loadingAsk, refreshCredits]);
 
+  /**
+   * Triggers the CV build process to generate a preview.
+   */
+  const handleBuildPreview = useCallback(async () => {
+    if (!job || loadingBuild) return;
+
+    setLoadingBuild(true);
+
+    try {
+      const result = await previewCVBuild({
+        cv_id: job.cv_id,
+        job_id: job.job_id,
+      });
+
+      setPreviewData(result);
+      setShowPreviewModal(true);
+      refreshCredits();
+    } catch (err) {
+      if (err.response?.status === 429) {
+        toast.error("You've reached your daily limit for AI actions.");
+      } else {
+        toast.error("Failed to generate CV improvement.");
+        console.error(err);
+      }
+    } finally {
+      setLoadingBuild(false);
+    }
+  }, [job, loadingBuild, refreshCredits]);
+
+  /**
+   * Finalizes the CV improvement by saving it to the database.
+   */
+  const handleConfirmSave = useCallback(async () => {
+    if (!job || !previewData || loadingBuild) return;
+
+    setLoadingBuild(true);
+
+    try {
+      await saveCVBuild({
+        cv_id: job.cv_id,
+        job_id: job.job_id,
+        updated_text: previewData.updated_text,
+      });
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "ai",
+          type: "text",
+          text: `✨ Success! Your CV has been improved and saved. Your match score has been recalculated.`,
+        },
+      ]);
+
+      setShowPreviewModal(false);
+      setPreviewData(null);
+      refreshCredits();
+      if (onCVImproved) onCVImproved();
+      toast.success("CV improved and saved successfully!");
+    } catch (err) {
+      toast.error("Failed to save improved CV.");
+      console.error(err);
+    } finally {
+      setLoadingBuild(false);
+    }
+  }, [job, previewData, loadingBuild, refreshCredits, onCVImproved]);
+
   return {
     messages,
     input,
     setInput,
     loadingAsk,
     loadingAnalyze,
+    loadingBuild,
+    showPreviewModal,
+    setShowPreviewModal,
+    previewData,
     handleAnalyze,
     handleSend,
+    handleBuildPreview,
+    handleConfirmSave,
   };
 }

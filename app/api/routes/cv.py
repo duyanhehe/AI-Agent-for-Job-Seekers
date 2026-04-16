@@ -19,6 +19,7 @@ from app.models.cv_documents import CVDocuments
 from app.models.job_matched_history import JobMatchedHistory
 from app.models.user_profiles import UserProfile
 from app.schemas.job_preference import JobPreference
+from app.schemas.cv_builder import CVBuildRequest, CVBuildSaveRequest
 from app.services.cache.cache_service import (
     cache_delete_pattern,
     cache_get,
@@ -258,3 +259,140 @@ def set_primary_cv(
     db.commit()
 
     return {"message": "Primary CV set"}
+
+
+@router.post("/cv/builder/preview")
+async def preview_build_cv(
+    data: CVBuildRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    llm_service=Depends(get_llm_service),
+    rate_limit=Depends(get_rate_limit_service),
+    index_manager=Depends(get_index_manager),
+):
+    """
+    Generate an improved CV preview without saving it.
+    Consumes 1 credit for the AI improvement call.
+    """
+    # 1. Fetch CV
+    cv = (
+        db.query(CVDocuments)
+        .filter(CVDocuments.id == data.cv_id, CVDocuments.user_id == user.id)
+        .first()
+    )
+    if not cv:
+        raise HTTPException(status_code=404, detail="CV not found")
+
+    # 2. Fetch Job
+    if data.job_id >= len(index_manager.jobs_data) or data.job_id < 0:
+        raise HTTPException(status_code=404, detail="Job not found")
+    job = index_manager.jobs_data[data.job_id]
+
+    # 3. Get Missing Skills
+    analysis = await llm_service.match_cv_to_job(cv.content, job, user.id, db)
+    missing_skills = analysis.get("missing_skills", [])
+
+    if not missing_skills:
+        return {
+            "message": "No missing skills identified for this job.",
+            "original_text": cv.content,
+            "updated_text": cv.content,
+            "missing_skills": [],
+        }
+
+    # 4. Consume credits for preview generation
+    rate_limit.check_and_consume(user.id, weight=1)
+
+    # 5. Improve CV
+    improvement = await llm_service.improve_cv(
+        cv.content, ", ".join(missing_skills), user.id, db
+    )
+    updated_text = improvement.get("updated_cv")
+
+    if not updated_text:
+        raise HTTPException(status_code=500, detail="Failed to generate improvement")
+
+    return {
+        "original_text": cv.content,
+        "updated_text": updated_text,
+        "missing_skills": missing_skills,
+    }
+
+
+@router.post("/cv/builder/save")
+async def save_build_cv(
+    data: CVBuildSaveRequest,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+    llm_service=Depends(get_llm_service),
+    rate_limit=Depends(get_rate_limit_service),
+    index_manager=Depends(get_index_manager),
+):
+    """
+    Persist the improved CV and recalculate match scores.
+    Consumes 1 credit for the structured profile re-extraction.
+    """
+    # 1. Fetch CV
+    cv = (
+        db.query(CVDocuments)
+        .filter(CVDocuments.id == data.cv_id, CVDocuments.user_id == user.id)
+        .first()
+    )
+    if not cv:
+        raise HTTPException(status_code=404, detail="CV not found")
+
+    # 2. Update CV content
+    cv.content = data.updated_text
+    db.commit()
+
+    # 3. Consume credits for profile re-extraction
+    rate_limit.check_and_consume(user.id, weight=1)
+
+    # 4. Re-extract Profile
+    profile = await llm_service.extract_profile(data.updated_text, user.id, db)
+
+    # 5. Update UserProfile
+    db_profile = (
+        db.query(UserProfile)
+        .filter(UserProfile.user_id == user.id, UserProfile.cv_id == cv.id)
+        .first()
+    )
+    if db_profile:
+        db_profile.profile = profile
+    else:
+        db_profile = UserProfile(user_id=user.id, cv_id=cv.id, profile=profile)
+        db.add(db_profile)
+    db.commit()
+
+    # 6. Clear Caches
+    cache_delete_pattern(f"profile:{user.id}:*")
+    cache_delete_pattern(f"jobs:{user.id}:{cv.id}:*")
+
+    # 7. Recalculate Match Score
+    history = (
+        db.query(JobMatchedHistory)
+        .filter(JobMatchedHistory.user_id == user.id, JobMatchedHistory.cv_id == cv.id)
+        .first()
+    )
+
+    job_function = history.job_function if history else "Engineering"
+    job_type = history.job_type if history else "Full-time"
+    location = history.location if history else ""
+
+    result = index_manager.matchJobs(
+        text=data.updated_text,
+        skills=profile.get("skills", []),
+        job_function=job_function,
+        job_type=job_type,
+        location=location,
+    )
+
+    if history:
+        history.jobs = result["jobs"]
+        db.commit()
+
+    return {
+        "message": "CV improvements saved and profile updated.",
+        "profile": profile,
+        "jobs": result["jobs"],
+    }
