@@ -41,10 +41,6 @@ function buildInitialMessages(job, chatHistory) {
       sender: "ai",
       type: "analyze_button",
     },
-    {
-      sender: "ai",
-      type: "cv_build_button",
-    },
     ...historyMessages,
   ];
 }
@@ -64,6 +60,7 @@ export default function useAIAgentPanel(job, cvText, chatHistory = [], onCVImpro
   const [loadingBuild, setLoadingBuild] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewData, setPreviewData] = useState(null);
+  const [cvImproved, setCvImproved] = useState(false);
   const { refreshCredits } = useCredits();
 
   useEffect(() => {
@@ -249,6 +246,7 @@ export default function useAIAgentPanel(job, cvText, chatHistory = [], onCVImpro
 
       setShowPreviewModal(false);
       setPreviewData(null);
+      setCvImproved(true);
       refreshCredits();
       if (onCVImproved) onCVImproved();
       toast.success("CV improved and saved successfully!");
@@ -270,6 +268,7 @@ export default function useAIAgentPanel(job, cvText, chatHistory = [], onCVImpro
     showPreviewModal,
     setShowPreviewModal,
     previewData,
+    cvImproved,
     handleAnalyze,
     handleSend,
     handleBuildPreview,

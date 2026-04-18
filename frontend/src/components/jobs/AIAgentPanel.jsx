@@ -12,6 +12,7 @@ function AIAgentPanel({ job, cvText, chatHistory = [], onCVImproved }) {
     showPreviewModal,
     setShowPreviewModal,
     previewData,
+    cvImproved,
     handleAnalyze,
     handleSend,
     handleBuildPreview,
@@ -60,39 +61,6 @@ function AIAgentPanel({ job, cvText, chatHistory = [], onCVImproved }) {
             );
           }
 
-          if (msg.type === "cv_build_button") {
-            return (
-              <div key={i} className="flex justify-start">
-                <button
-                  onClick={handleBuildPreview}
-                  disabled={loadingBuild}
-                  className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 font-semibold shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:scale-100"
-                >
-                  {loadingBuild ? (
-                    <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                        className="w-5 h-5"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.25 15L17.5 17.625l-.75-2.625A2.25 2.25 0 0015.375 13.5l-2.625-.75 2.625-.75a2.25 2.25 0 001.375-1.375l.75-2.625.75 2.625a2.25 2.25 0 001.375 1.375l2.625.75-2.625.75a2.25 2.25 0 00-1.375 1.375z"
-                        />
-                      </svg>
-                      Improve CV with Missing Skills
-                    </>
-                  )}
-                </button>
-              </div>
-            );
-          }
 
           return (
             <div
@@ -121,6 +89,55 @@ function AIAgentPanel({ job, cvText, chatHistory = [], onCVImproved }) {
             </div>
           </div>
         )}
+      </div>
+
+      {/* STICKY IMPROVE CV BUTTON */}
+      <div className="border-t px-4 py-2 bg-white">
+        <button
+          onClick={handleBuildPreview}
+          disabled={loadingBuild || cvImproved}
+          className="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 font-semibold shadow-md hover:shadow-lg transition-all active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed"
+        >
+          {loadingBuild ? (
+            <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : cvImproved ? (
+            <>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4.5 12.75l6 6 9-13.5"
+                />
+              </svg>
+              CV Already Improved
+            </>
+          ) : (
+            <>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.25 15L17.5 17.625l-.75-2.625A2.25 2.25 0 0015.375 13.5l-2.625-.75 2.625-.75a2.25 2.25 0 001.375-1.375l.75-2.625.75 2.625a2.25 2.25 0 001.375 1.375l2.625.75-2.625.75a2.25 2.25 0 00-1.375 1.375z"
+                />
+              </svg>
+              Improve CV for This Job
+            </>
+          )}
+        </button>
       </div>
 
       {/* INPUT AREA */}
