@@ -77,9 +77,11 @@ cd frontend
 npm install
 ```
 
-4. Create `.env` file:
+3. Create `.env` file:
 ```
 GEMINI_API_KEY=your_gemini_api_key_here
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2:3b
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=admin123
 DB_HOST=localhost
@@ -95,7 +97,14 @@ CHROMA_PORT=8000
 SESSION_EXPIRE_SECONDS=86400
 ```
 
-4. Start services:
+4. Setup Ollama fallback:
+```bash
+ollama pull llama3.2:3b
+```
+
+Keep Ollama running on the host. Local backend runs use `OLLAMA_BASE_URL=http://localhost:11434`.
+
+5. Start services:
 ```bash
 # Terminal 1: Backend
 uvicorn app.main:app --reload
@@ -122,7 +131,14 @@ openssl req -x509 -newkey rsa:4096 -nodes \
 
 2. Create `.env` file (ensure `CHROMA_HOST=chromadb` for Docker setup).
 
-3. Start services:
+3. Setup host Ollama fallback:
+```bash
+ollama pull llama3.2:3b
+```
+
+Keep Ollama running on the host, not inside Docker Compose. The compose file points FastAPI containers to `http://host.docker.internal:11434` by default. Override `OLLAMA_BASE_URL` only if your host Ollama endpoint differs.
+
+4. Start services:
 - first time
 ```bash
 docker-compose up --build -d
@@ -135,12 +151,12 @@ The frontend build is automated within a dedicated container during startup.
 
 Access: http://localhost (Testing) or https://localhost (Production)
 
-4. Stop services:
+5. Stop services:
 ```bash
 docker-compose down
 ```
 
-5. Useful commands
+6. Useful commands
 Check logs: `docker-compose logs -f`
 Check status: `docker-compose ps`
 Restart a specific service: `docker-compose restart fastapi1`
@@ -165,7 +181,7 @@ The system uses a **semantic search + market context** RAG approach:
 - Market context grounds the LLM in realistic job market data
 
 **Stage 3: Generation (LLM Analysis)**
-- Send to Google Gemini 2.5 Flash (fallback to Flash Lite):
+- Send to Google Gemini 2.5 Flash (fallback to Flash Lite, then host Ollama `llama3.2:3b` when both Gemini models hit quota):
   - CV text
   - Job details
   - Market context (similar jobs)

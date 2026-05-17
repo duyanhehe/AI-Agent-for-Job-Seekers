@@ -1,11 +1,12 @@
 from google import genai
 from google.api_core import exceptions
 from fastapi import HTTPException
+import httpx
 import json
 import asyncio
 from app.services.cache.cache_service import cache_get, cache_set
 from app.utils.cache_hash import make_hash
-from app.core.config import GEMINI_API_KEY
+from app.core.config import GEMINI_API_KEY, OLLAMA_BASE_URL, OLLAMA_MODEL
 from app.models.llm_function_usage import LLMFunctionUsage
 from .prompts import (
     build_extract_external_job_info_prompt,
@@ -21,7 +22,7 @@ from .llm_guardrails import GuardrailValidator
 
 
 class LLMService:
-    """Uses Google Gemini 2.5 Flash and Gemini 2.5 Flash Lite for CV, job, and interview workflows."""
+    """Uses Gemini with a local Ollama fallback for CV, job, and interview workflows."""
 
     def __init__(self, index_manager):
         """Initialize the Gemini client with retry logic and store the shared index_manager."""
@@ -42,6 +43,36 @@ class LLMService:
         """Build truncated RAG context for a query via the job index."""
         context = self.index_manager.build_rag_context(query)
         return context[:2000]  # Limit context size for LLM input
+
+    async def _call_ollama(self, prompt):
+        """Call local Ollama and return the raw JSON text response."""
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    f"{OLLAMA_BASE_URL.rstrip('/')}/api/generate",
+                    json={
+                        "model": OLLAMA_MODEL,
+                        "prompt": prompt,
+                        "stream": False,
+                        "format": "json",
+                    },
+                )
+                response.raise_for_status()
+        except httpx.HTTPError as exc:
+            print("OLLAMA ERROR:", str(exc))
+            return None
+
+        try:
+            data = response.json()
+        except ValueError as exc:
+            print("OLLAMA ERROR:", str(exc))
+            return None
+
+        if not isinstance(data, dict) or "response" not in data:
+            print("OLLAMA ERROR: missing response field")
+            return None
+
+        return data["response"]
 
     async def match_cv_to_job(self, cv, job, user_id, db, rag_context=None):
         """Score and explain fit between CV text and a job record."""
@@ -150,7 +181,7 @@ class LLMService:
         job=None,
         rag_context=None,
     ):
-        """Call Gemini API, parse JSON, and record token usage."""
+        """Call LLM API, parse JSON, and record token usage."""
 
         cache_key = f"llm_prompt:{make_hash(prompt)}"
         lock_key = f"lock:{cache_key}"
@@ -203,6 +234,10 @@ class LLMService:
             redis_client.delete(lock_key)
 
         try:
+            prompt_tokens = 0
+            completion_tokens = 0
+            total_tokens = 0
+
             # Try primary model (Gemini 2.5 Flash)
             try:
                 response = await self.client.aio.models.generate_content(
@@ -224,21 +259,33 @@ class LLMService:
                         ),
                     )
                 except exceptions.ResourceExhausted:
-                    return {"answer": "", "reason": "quota_exhausted"}
-
-            raw_output = response.text
+                    print("Flash-Lite quota hit! Falling back to Ollama...")
+                    raw_output = await self._call_ollama(prompt)
+                    if raw_output is None:
+                        return {"answer": "", "reason": "ollama_unavailable"}
+                else:
+                    raw_output = response.text
+                    usage = response.usage_metadata
+                    prompt_tokens = usage.prompt_token_count
+                    completion_tokens = usage.candidates_token_count
+                    total_tokens = usage.total_token_count
+            else:
+                raw_output = response.text
+                usage = response.usage_metadata
+                prompt_tokens = usage.prompt_token_count
+                completion_tokens = usage.candidates_token_count
+                total_tokens = usage.total_token_count
 
             # -------------------------
             # Record Token Usage
             # -------------------------
-            usage = response.usage_metadata
             usage_entry = LLMFunctionUsage(
                 user_id=user_id,
                 function_name=function_name,
                 credits_spent=credits,
-                prompt_tokens=usage.prompt_token_count,
-                completion_tokens=usage.candidates_token_count,
-                total_tokens=usage.total_token_count,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
             )
             db.add(usage_entry)
             db.commit()

@@ -3,6 +3,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 from google.api_core import exceptions
 from fastapi import HTTPException
+import httpx
 from app.services.llm.llm_service import LLMService
 
 
@@ -111,17 +112,64 @@ async def test_call_llm_resource_exhausted_fallback(
 
 @pytest.mark.asyncio
 async def test_call_llm_resource_exhausted_both_fail(llm_service, db, monkeypatch):
-    # Both calls raise ResourceExhausted
+    # Both Gemini calls raise ResourceExhausted, then Ollama succeeds
     async_mock = AsyncMock(side_effect=exceptions.ResourceExhausted("Quota hit"))
+    ollama_mock = AsyncMock(
+        return_value=json.dumps({"answer": "Ollama answer", "reason": "Local model"})
+    )
 
     monkeypatch.setattr(llm_service.client.aio.models, "generate_content", async_mock)
+    monkeypatch.setattr(llm_service, "_call_ollama", ollama_mock)
 
     result = await llm_service._call_llm(
         prompt="test", function_name="Test", user_id=1, db=db
     )
 
-    assert result["reason"] == "quota_exhausted"
+    assert result["answer"] == "Ollama answer"
+    assert result["reason"] == "Local model"
     assert async_mock.call_count == 2
+    ollama_mock.assert_awaited_once_with("test")
+
+
+@pytest.mark.asyncio
+async def test_call_llm_resource_exhausted_ollama_unavailable(
+    llm_service, db, monkeypatch
+):
+    async_mock = AsyncMock(side_effect=exceptions.ResourceExhausted("Quota hit"))
+    ollama_mock = AsyncMock(return_value=None)
+
+    monkeypatch.setattr(llm_service.client.aio.models, "generate_content", async_mock)
+    monkeypatch.setattr(llm_service, "_call_ollama", ollama_mock)
+
+    result = await llm_service._call_llm(
+        prompt="test", function_name="Test", user_id=1, db=db
+    )
+
+    assert result["reason"] == "ollama_unavailable"
+    assert async_mock.call_count == 2
+    ollama_mock.assert_awaited_once_with("test")
+
+
+@pytest.mark.asyncio
+async def test_call_ollama_request_error(llm_service, monkeypatch):
+    class MockAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, traceback):
+            pass
+
+        async def post(self, *args, **kwargs):
+            raise httpx.RequestError("Ollama offline")
+
+    monkeypatch.setattr(httpx, "AsyncClient", MockAsyncClient)
+
+    result = await llm_service._call_ollama("test")
+
+    assert result is None
 
 
 @pytest.mark.asyncio

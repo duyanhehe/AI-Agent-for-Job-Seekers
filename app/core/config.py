@@ -43,6 +43,10 @@ SESSION_EXPIRE_SECONDS = int(os.getenv("SESSION_EXPIRE_SECONDS", 86400))
 # Gemini API
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+# Ollama fallback
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+
 # ChromaDB
 CHROMA_HOST = os.getenv("CHROMA_HOST")
 CHROMA_PORT = os.getenv("CHROMA_PORT", "8000")
